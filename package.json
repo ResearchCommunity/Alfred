@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "eris": "^0.17.1"
+  }
+}
