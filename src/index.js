@@ -1,3 +1,6 @@
+// Copyright (C) 2022  Xenorio
+// See license in /LICENSE
+
 const Eris = require('eris')
 
 const config = require('../config')
