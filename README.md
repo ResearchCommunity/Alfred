@@ -5,4 +5,3 @@ General Purpose Discord Bot for the Research Community
 
 - Music Streaming
 - Ticket System
-- Moderation Commands
