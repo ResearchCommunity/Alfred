@@ -3,6 +3,13 @@
     "start": "node src/index.js"
   },
   "dependencies": {
-    "eris": "^0.17.1"
+    "@discordjs/opus": "^0.9.0",
+    "bufferutil": "^4.0.7",
+    "eris": "^0.17.1",
+    "sodium-native": "3.2",
+    "youtube-api": "^3.0.1",
+    "yt-dlp-exec": "^1.0.2",
+    "ytdl-core": "^4.11.2",
+    "zlib-sync": "^0.1.7"
   }
 }
