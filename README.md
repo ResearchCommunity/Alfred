@@ -3,5 +3,4 @@ General Purpose Discord Bot for the Research Community
 
 ## TODO
 
-- Music Streaming
 - Ticket System
