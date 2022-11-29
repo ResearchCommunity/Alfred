@@ -1,6 +1,11 @@
 module.exports = {
 
-    token: "DISCORD BOT TOKEN",
+    keys: {
+        discord: "BOT TOKEN",
+        youtube: "YOUTUBE API KEY"
+    },
+
+    guild: "GUILD ID",
 
     // Presence data
     //
@@ -16,5 +21,11 @@ module.exports = {
             type: 0
         }]
     },
+
+    music: {
+        channel: "VOICE CHANNEL ID",
+        playlist: "YOUTUBE PLAYLIST ID", // Only public and unlisted playlists supported
+        shuffle: false
+    }
 
 }
