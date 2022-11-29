@@ -1,3 +1,6 @@
+// Copyright (C) 2022  Xenorio
+// See license in /LICENSE
+
 const { client } = require('../index')
 const ytdl = require('ytdl-core')
 const playlist = require('./playlist')

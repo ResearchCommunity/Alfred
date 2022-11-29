@@ -1,3 +1,6 @@
+// Copyright (C) 2022  Xenorio
+// See license in /LICENSE
+
 const yt = require('youtube-api');
 const config = require('../../config')
 
