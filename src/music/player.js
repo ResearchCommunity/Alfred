@@ -2,11 +2,9 @@
 // See license in /LICENSE
 
 const { client } = require('../index')
-const YTDlp = require('yt-dlp-wrap').default
+const ytdl = require('ytdl-core')
 const playlist = require('./playlist')
 const config = require('../../config')
-
-const ytdl = new YTDlp()
 
 const guild = client.guilds.get(config.guild)
 let channel = guild.channels.get(config.music.channel)
@@ -28,8 +26,8 @@ async function join() {
         play()
     })
 
-    connection.on('error', err => {
-        console.error(err)
+    connection.on('error', (error) => {
+        console.error(error)
         play()
     })
 
@@ -43,19 +41,16 @@ async function play() {
     let stream
 
     try {
-
-        stream = ytdl.execStream([
-            `https://www.youtube.com/watch?v=${currentSong.resourceId.videoId}`,
-            '-f',
-            'bestaudio/best',
-            '--force-ipv4',
-            '--sponsorblock-mark',
-            'music_offtopic'
-        ]);
-
+        stream = ytdl(`https://www.youtube.com/watch?v=${currentSong.resourceId.videoId}`, {
+            filter: 'audioonly',
+            format: 'bestaudio/best',
+            requestOptions: {
+                family: 4
+            }
+        })
     } catch (error) {
-        // If video could not be accessed for any reason, play the next one
         console.error(error)
+        // If video could not be accessed for any reason, play the next one
         return play()
     }
 
