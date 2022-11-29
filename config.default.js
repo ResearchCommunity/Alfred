@@ -25,7 +25,8 @@ module.exports = {
     music: {
         channel: "VOICE CHANNEL ID",
         playlist: "YOUTUBE PLAYLIST ID", // Only public and unlisted playlists supported
-        shuffle: false
+        shuffle: false,
+        format: 'bestaudio/best'
     }
 
 }
