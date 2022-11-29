@@ -48,7 +48,8 @@ async function play() {
             `https://www.youtube.com/watch?v=${currentSong.resourceId.videoId}`,
             '-f',
             'bestaudio/best',
-            '--force-ipv4'
+            '--sponsorblock-mark',
+            'music_offtopic'
         ]);
 
     } catch (error) {
