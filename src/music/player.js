@@ -43,9 +43,9 @@ async function play() {
     try {
         stream = ytdl(`https://www.youtube.com/watch?v=${currentSong.resourceId.videoId}`, {
             filter: 'audioonly',
-            format: 'bestaudio/best',
+            format: 'lowestaudio',
             requestOptions: {
-                family: 4
+                family: 4 // Force IPv4
             }
         })
     } catch (error) {
