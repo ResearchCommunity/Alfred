@@ -26,7 +26,8 @@ module.exports = {
         channel: "VOICE CHANNEL ID",
         playlist: "YOUTUBE PLAYLIST ID", // Only public and unlisted playlists supported
         shuffle: false,
-        format: 'bestaudio/best'
+        format: 'bestaudio/best',
+        refresh: '1h'
     }
 
 }

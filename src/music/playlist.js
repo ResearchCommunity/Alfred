@@ -2,6 +2,7 @@
 // See license in /LICENSE
 
 const yt = require('youtube-api');
+const ms = require('ms')
 const config = require('../../config')
 
 yt.authenticate({
@@ -10,6 +11,24 @@ yt.authenticate({
 })
 
 let playlist = []
+let listindex = 0
+
+module.exports.init = () => {
+    return new Promise((resolve, reject) => {
+
+        setInterval(() => {
+            this.load(() => {
+                if (config.music.shuffle) shuffle()
+            })
+        }, ms(config.music.refresh))
+
+        this.load(() => {
+            if (config.music.shuffle) shuffle()
+            resolve()
+        })
+
+    })
+}
 
 // Recursively loads all items from a YouTube playlist and adds them to playlist array
 module.exports.load = (cb, page) => {
@@ -59,20 +78,21 @@ module.exports.load = (cb, page) => {
 //     }                  
 // }
 
-module.exports.next = async() => {
-    return new Promise((resolve, reject) => {
-        if (!playlist[0]) {
-            this.load(() => {
-                if (config.music.shuffle) shuffle()
-                let item = playlist[0]
-                playlist.shift()
-                resolve(item)
-            })
-        } else {
-            let item = playlist[0]
-            playlist.shift()
-            resolve(item)
+module.exports.next = () => {
+    return new Promise(async(resolve, reject) => {
+
+        if (!playlist[0]) await this.init()
+
+        let item = playlist[listindex]
+
+        listindex++
+
+        if (listindex > playlist.length - 1) {
+            listindex = 0
+            if (config.music.shuffle) shuffle()
         }
+
+        resolve(item)
     })
 }
 
