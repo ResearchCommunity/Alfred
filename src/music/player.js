@@ -18,6 +18,10 @@ async function join() {
         selfDeaf: true
     })
 
+    connection.on('ready', () => {
+        play()
+    })
+
     connection.on('end', () => {
         play()
     })
@@ -34,7 +38,7 @@ async function join() {
 }
 
 async function play() {
-    if (!connection) await join()
+    if (!connection) return join()
     currentSong = await playlist.next()
     console.log(`Playing | ${currentSong.title}`)
 
