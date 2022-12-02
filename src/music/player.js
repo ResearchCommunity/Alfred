@@ -18,9 +18,11 @@ async function join() {
         selfDeaf: true
     })
 
-    connection.on('ready', () => {
-        play()
-    })
+    // TODO: figure out why this doesn't fire. Needed to avoid race condition.
+    //
+    // connection.on('ready', () => {
+    //     play()
+    // })
 
     connection.on('end', () => {
         play()
@@ -38,7 +40,7 @@ async function join() {
 }
 
 async function play() {
-    if (!connection) return join()
+    if (!connection) await join()
     currentSong = await playlist.next()
     console.log(`Playing | ${currentSong.title}`)
 
@@ -50,7 +52,7 @@ async function play() {
             format: config.music.format,
             highWaterMark: 1 << 25,
             requestOptions: {
-                family: 4 // Force IPv4
+                family: 4 // Force IPv4. There are server-specific reasons for this. Just trust that they are good ones.
             }
         })
     } catch (error) {
