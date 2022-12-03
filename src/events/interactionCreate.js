@@ -18,6 +18,8 @@ module.exports = async(client, interaction) => {
 
         case 3:
             // Component Interaction
+            if (!fs.existsSync(`./src/components/${interaction.data.custom_id}.js`)) return
+            require(`../components/${interaction.data.custom_id}.js`).execute(client, interaction)
             break;
 
         default:

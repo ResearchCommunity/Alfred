@@ -11,6 +11,7 @@ const client = new Eris.CommandClient(config.keys.discord, {
 })
 
 loadEvents()
+require('./mongo') // Init database
 
 client.editStatus(config.presence.status, config.presence.activities)
 
