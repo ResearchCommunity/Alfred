@@ -26,8 +26,8 @@ module.exports = {
         channel: "VOICE CHANNEL ID",
         playlist: "YOUTUBE PLAYLIST ID", // Only public and unlisted playlists supported
         shuffle: false,
-        format: 'bestaudio/best',
-        refresh: '1h'
+        format: 'bestaudio/best', // ytdl-core format
+        refresh: '1h' // How often the playlist should be refreshed
     },
 
     database: {
@@ -36,7 +36,8 @@ module.exports = {
     },
 
     tickets: {
-        category: ''
+        category: '', // ID of channel category to put tickets in
+        tripsitter: '' // ID of tripsitter role
     }
 
 }
