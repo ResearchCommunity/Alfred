@@ -28,6 +28,11 @@ module.exports = {
         shuffle: false,
         format: 'bestaudio/best',
         refresh: '1h'
+    },
+
+    database: {
+        url: 'mongodb://127.0.0.1:27017', // MongoDB connection string
+        name: 'ResearchCommunity-Alfred'
     }
 
 }
