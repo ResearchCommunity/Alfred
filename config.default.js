@@ -33,6 +33,10 @@ module.exports = {
     database: {
         url: 'mongodb://127.0.0.1:27017', // MongoDB connection string
         name: 'ResearchCommunity-Alfred'
+    },
+
+    tickets: {
+        category: ''
     }
 
 }
