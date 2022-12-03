@@ -21,6 +21,9 @@ MongoClient.connect(server)
     .then(s => {
         db = s.db(db_name)
     })
+    .catch(err => {
+        console.error(err)
+    })
 
 // Insert a new document
 //
