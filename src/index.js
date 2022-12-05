@@ -1,21 +1,27 @@
 // Copyright (C) 2022  Xenorio
 // See license in /LICENSE
 
-const Eris = require('eris')
+const { IntentsBitField, Client } = require('discord.js')
 const fs = require('fs')
 
 const config = require('../config')
 
-const client = new Eris.CommandClient(config.keys.discord, {
-    intents: ["guilds", "guildMessages"]
+let intents = new IntentsBitField()
+
+intents.add(
+    IntentsBitField.Flags.Guilds,
+    IntentsBitField.Flags.GuildVoiceStates,
+    IntentsBitField.Flags.GuildMembers
+)
+
+const client = new Client({
+    intents: intents
 })
 
 loadEvents()
 require('./mongo') // Init database
 
-client.editStatus(config.presence.status, config.presence.activities)
-
-client.connect()
+client.login(config.keys.discord)
     .then(() => {
         console.log('Successfully logged in!')
     })
