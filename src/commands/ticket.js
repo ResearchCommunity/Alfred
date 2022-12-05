@@ -1,24 +1,26 @@
 // Copyright (C) 2022  Xenorio
 // See license in /LICENSE
 
+const { ComponentType, ApplicationCommandType, PermissionFlagsBits } = require('discord.js')
+
 // Passed to Discord when registering the command
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object
 module.exports.info = {
     name: 'ticket',
     description: 'Admin command for ticket related matters',
-    type: 1, // CHAT_INPUT
-    default_member_permissions: '0'
+    type: ApplicationCommandType.ChatInput,
+    default_member_permissions: PermissionFlagsBits.Administrator.toString()
 }
 
 // Called whenever the command is being executed
 module.exports.execute = async(client, interaction) => {
-    interaction.createMessage({
+    interaction.reply({
         content: 'What do you want to do?',
-        flags: 64, // Ephemeral
+        ephemeral: true,
         components: [{
-            type: 1, // Collection
+            type: ComponentType.ActionRow,
             components: [{
-                type: 3, // Selection menu
+                type: ComponentType.StringSelect,
                 custom_id: 'ticket-menu',
                 options: [{
                     label: 'Creation Message',

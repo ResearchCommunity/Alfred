@@ -2,6 +2,7 @@
 // See license in /LICENSE
 
 const { IntentsBitField, Client } = require('discord.js')
+const { REST } = require('@discordjs/rest')
 const fs = require('fs')
 
 const config = require('../config')
@@ -17,6 +18,8 @@ intents.add(
 const client = new Client({
     intents: intents
 })
+
+client.rest = new REST({ version: '9' }).setToken(config.keys.discord);
 
 loadEvents()
 require('./mongo') // Init database
