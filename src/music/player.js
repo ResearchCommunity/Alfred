@@ -5,36 +5,47 @@ const { client } = require('../index')
 const ytdl = require('ytdl-core')
 const playlist = require('./playlist')
 const config = require('../../config')
+const {
+    createAudioPlayer,
+    NoSubscriberBehavior,
+    createAudioResource,
+    joinVoiceChannel,
+    VoiceConnectionStatus,
+    AudioPlayerStatus
+} = require('@discordjs/voice')
 
-const guild = client.guilds.get(config.guild)
-let channel = guild.channels.get(config.music.channel)
+const player = createAudioPlayer({
+    behaviors: {
+        noSubscriber: NoSubscriberBehavior.Pause,
+    },
+})
+
+player.on(AudioPlayerStatus.Idle, () => {
+    play()
+})
+
+const guild = client.guilds.resolve(config.guild)
+let channel = guild.channels.resolve(config.music.channel)
 
 let currentSong
 
 let connection
 
 async function join() {
-    connection = await channel.join({
-        selfDeaf: true
+    let connection = await joinVoiceChannel({
+        channelId: channel.id,
+        guildId: channel.guild.id,
+        adapterCreator: channel.guild.voiceAdapterCreator
     })
 
-    // TODO: figure out why this doesn't fire. Needed to avoid race condition.
-    //
-    // connection.on('ready', () => {
-    //     play()
-    // })
+    connection.subscribe(player)
 
-    connection.on('end', () => {
-        play()
+    connection.on(VoiceConnectionStatus.Disconnected, () => {
+        join()
     })
 
-    connection.on('disconnect', () => {
-        play()
-    })
-
-    connection.on('error', (error) => {
-        console.error(error)
-        play()
+    connection.on(VoiceConnectionStatus.Destroyed, () => {
+        join()
     })
 
 }
@@ -47,21 +58,21 @@ async function play() {
     let stream
 
     try {
-        stream = ytdl(`https://www.youtube.com/watch?v=${currentSong.resourceId.videoId}`, {
+        stream = createAudioResource(ytdl(`https://www.youtube.com/watch?v=${currentSong.resourceId.videoId}`, {
             filter: 'audioonly',
             format: config.music.format,
             highWaterMark: 1 << 25,
             requestOptions: {
                 family: 4 // Force IPv4. There are server-specific reasons for this. Just trust that they are good ones.
             }
-        })
+        }))
     } catch (error) {
         console.error(error)
-        // If video could not be accessed for any reason, play the next one
+            // If video could not be accessed for any reason, play the next one
         return play()
     }
 
-    connection.play(stream)
+    player.play(stream)
 
 }
 
