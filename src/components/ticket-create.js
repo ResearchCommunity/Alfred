@@ -2,18 +2,19 @@
 // See license in /LICENSE
 
 const config = require('../../config')
-const { Constants } = require('eris')
 const mongo = require('../mongo')
+const { ChannelType, ComponentType, ButtonStyle, OverwriteType } = require('discord.js')
 
 module.exports.execute = async(client, interaction) => {
 
-    let guild = client.guilds.get(config.guild)
+    let guild = client.guilds.resolve(config.guild)
+    let category = guild.channels.resolve(config.tickets.category)
 
     let existing = await mongo.queryOne('Tickets', { user: interaction.member.id })
 
-    if (existing && guild.channels.get(existing.channel)) {
-        interaction.createMessage({
-            flags: 64, // Ephemeral
+    if (existing && guild.channels.resolve(existing.channel)) {
+        interaction.reply({
+            ephemeral: true,
             content: `You already have a tripsitting channel at <#${existing.channel}>!`
         })
         return
@@ -21,44 +22,58 @@ module.exports.execute = async(client, interaction) => {
         mongo.delete('Tickets', existing)
     }
 
-    let channel = await guild.createChannel(interaction.member.nick || interaction.member.username, 0, {
+    let channel = await category.children.create({
+        name: interaction.member.displayName,
+        type: ChannelType.GuildText,
         parentID: config.tickets.category,
         permissionOverwrites: [{
                 id: guild.id,
-                deny: Constants.Permissions.viewChannel
+                type: OverwriteType.Role,
+                deny: 'ViewChannel'
             },
             {
                 id: interaction.member.id,
-                type: 1,
-                allow: Constants.Permissions.viewChannel + Constants.Permissions.sendMessages
+                type: OverwriteType.Member,
+                allow: [
+                    'ViewChannel',
+                    'SendMessages'
+                ]
             },
             {
                 id: client.user.id,
-                type: 1,
-                allow: Constants.Permissions.viewChannel + Constants.Permissions.sendMessages + Constants.Permissions.manageChannels
+                type: OverwriteType.Member,
+                allow: [
+                    'ViewChannel',
+                    'SendMessages',
+                    'ManageChannels'
+                ]
             },
             {
                 id: config.tickets.tripsitter,
-                allow: Constants.Permissions.viewChannel + Constants.Permissions.sendMessages
+                type: OverwriteType.Role,
+                allow: [
+                    'ViewChannel',
+                    'SendMessages'
+                ]
             }
         ]
     })
 
-    channel.createMessage({
+    channel.send({
         content: `<@${interaction.member.id}> <@&${config.tickets.tripsitter}>\nHere's your private tripsitting channel!`,
         components: [{
-            type: 1, // Collection
+            type: ComponentType.ActionRow,
             components: [{
-                type: 2, // Button
-                style: 4, // Blue
+                type: ComponentType.Button,
+                style: ButtonStyle.Danger,
                 custom_id: 'ticket-delete',
                 label: '🗑️ Delete'
             }]
         }]
     })
 
-    interaction.createMessage({
-        flags: 64, // Ephemeral
+    interaction.reply({
+        ephemeral: true,
         content: `Your private tripsitting channel has been created at <#${channel.id}>!`
     })
 
