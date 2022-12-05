@@ -3,8 +3,11 @@
 
 const config = require('../../config')
 const fs = require('fs')
+const { Routes } = require('discord-api-types/v9')
 
 module.exports = async(client) => {
+
+    client.user.setPresence(config.presence)
 
     console.log('Ready to rumble!')
 
@@ -18,7 +21,7 @@ module.exports = async(client) => {
         player = '../music/player'
     }
 
-    require(player).play()
+    //require(player).play()
 
 }
 
@@ -47,6 +50,8 @@ function loadCommands(client) {
 
     // Register commands
     // Uses guild commands for immediate registering, bypassing cache
-    client.bulkEditGuildCommands(config.guild, commands)
+    client.rest.put(
+        Routes.applicationGuildCommands(client.user.id, config.guild), { body: commands },
+    );
 
 }

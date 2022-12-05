@@ -2,24 +2,20 @@
 // See license in /LICENSE
 
 const fs = require('fs')
+const { InteractionType } = require('discord.js')
 
 module.exports = async(client, interaction) => {
 
     switch (interaction.type) {
-        case 1:
-            // Ping Interaction
+
+        case InteractionType.ApplicationCommand:
+            if (!fs.existsSync(`./src/commands/${interaction.commandName}.js`)) return
+            require(`../commands/${interaction.commandName}.js`).execute(client, interaction)
             break;
 
-        case 2:
-            // Command Interaction
-            if (!fs.existsSync(`./src/commands/${interaction.data.name}.js`)) return
-            require(`../commands/${interaction.data.name}.js`).execute(client, interaction)
-            break;
-
-        case 3:
-            // Component Interaction
-            if (!fs.existsSync(`./src/components/${interaction.data.custom_id}.js`)) return
-            require(`../components/${interaction.data.custom_id}.js`).execute(client, interaction)
+        case InteractionType.MessageComponent:
+            if (!fs.existsSync(`./src/components/${interaction.customId}.js`)) return
+            require(`../components/${interaction.customId}.js`).execute(client, interaction)
             break;
 
         default:
