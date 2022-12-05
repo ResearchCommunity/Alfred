@@ -13,15 +13,7 @@ module.exports = async(client) => {
 
     loadCommands(client)
 
-    let player
-
-    if (config.music.emergency) {
-        player = '../music/emergency-player'
-    } else {
-        player = '../music/player'
-    }
-
-    //require(player).play()
+    require('../music/player').play()
 
 }
 
