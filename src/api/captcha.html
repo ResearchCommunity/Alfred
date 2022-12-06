@@ -32,9 +32,16 @@
             background-color: #2f3136;
             padding: 2rem;
             border-radius: 25px;
+            max-width: 100vw;
         }
         img {
             border-radius: 25px;
+        }
+        iframe {
+            width: 560px;
+            height: 315px;
+            max-width: 90vw;
+            max-height: 25vh;
         }
     </style>
 
@@ -57,7 +64,7 @@
             <h3>Success!</h3>
             <h4>You now have access to the Research Community</h4>
             <h5>You can close this page now. Or stay and watch some cute puppies!</h5>
-            <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/B1CPE6WWsAQ" title="YouTube video player"
+            <iframe src="https://www.youtube-nocookie.com/embed/B1CPE6WWsAQ" title="YouTube video player"
                 frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowfullscreen></iframe>
         </div>
@@ -67,7 +74,7 @@
 
         let params = new URLSearchParams(location.search)
 
-        showCaptcha()
+        showSuccess()
 
         function onSolve(key) {
             window.fetch('/captcha/solve', {
