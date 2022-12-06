@@ -38,6 +38,12 @@ module.exports = {
     tickets: {
         category: '', // ID of channel category to put tickets in
         tripsitter: '' // ID of tripsitter role
+    },
+
+    rules: {
+        embed: {
+            // Embed Data
+        }
     }
 
 }

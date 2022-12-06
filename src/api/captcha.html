@@ -1,0 +1,104 @@
+<!-- 
+    Copyright (C) 2022 Xenorio
+    See license at https://github.com/ResearchCommunity/Alfred/blob/main/LICENSE 
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Research Community | Captcha</title>
+
+    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+    <script src="https://unpkg.com/cross-fetch/dist/cross-fetch.js"></script>
+
+    <style>
+        html,
+        body {
+            margin: 0;
+            background-color: #36393f;
+            text-align: center;
+            color: white;
+        }
+        #content {
+            margin: 0;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translateY(-50%) translateX(-50%);
+            background-color: #2f3136;
+            padding: 2rem;
+            border-radius: 25px;
+        }
+        img {
+            border-radius: 25px;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <div id="content">
+        <noscript>
+            <h3>Hello there, fellow NoScript user!</h3>
+            <h4>We need to display a captcha here. Please whitelist this site!</h4>
+        </noscript>
+        <div id="content-captcha" style="display: none;">
+            <img src="https://cdn.discordapp.com/icons/1031541647403659324/a2bc99b8674667c145d5ede9533e5fb8.png" alt="Logo">
+            <h3>Solve the captcha to get access to the Research Community!</h3>
+            <div class="h-captcha" data-sitekey="046fea03-aad9-4e07-8d2c-41a1ddfff729" data-theme="dark" data-callback="onSolve"></div>
+        </div>
+        <div id="content-success" style="display: none;">
+            <img src="https://cdn.discordapp.com/icons/1031541647403659324/a2bc99b8674667c145d5ede9533e5fb8.png" alt="Logo">
+            <h3>Success!</h3>
+            <h4>You now have access to the Research Community</h4>
+            <h5>You can close this page now. Or stay and watch some cute puppies!</h5>
+            <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/B1CPE6WWsAQ" title="YouTube video player"
+                frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen></iframe>
+        </div>
+    </div>
+
+    <script>
+
+        showCaptcha()
+
+        function onSolve(key) {
+            window.fetch('/captcha/solve', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    user: '',
+                    key: key
+                })
+            }).then(async res => {
+                let data = await res.json()
+                if(data.success){
+                    showSuccess()
+                }else{
+                    alert('Something went wrong...')
+                }
+            })
+        }
+
+        function showCaptcha() {
+            document.getElementById('content-captcha').setAttribute('style', '')
+            document.getElementById('content-success').setAttribute('style', 'display: none;')
+        }
+
+        function showSuccess() {
+            document.getElementById('content-captcha').setAttribute('style', 'display: none;')
+            document.getElementById('content-success').setAttribute('style', '')
+        }
+
+    </script>
+
+</body>
+
+</html>

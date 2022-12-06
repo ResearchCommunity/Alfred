@@ -14,6 +14,7 @@ module.exports = async(client) => {
     loadCommands(client)
 
     require('../music/player').play()
+    require('../api/server').start(client, config.api.port)
 
 }
 
