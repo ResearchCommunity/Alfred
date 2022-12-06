@@ -18,7 +18,11 @@ module.exports.POST = async(client, req, res, next) => {
         let data = await response.json()
         if (data.success) {
             let guild = client.guilds.resolve(config.guild)
-            let member = guild.members.resolve(req.body.user)
+            let member = await guild.members.fetch(req.body.user)
+            console.log(member)
+            if (!member) return res.json({
+                success: false
+            })
             member.roles.add(config.onboarding.verifiedRole)
                 .then(() => {
                     res.json({
