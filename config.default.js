@@ -42,6 +42,7 @@ module.exports = {
     },
 
     onboarding: {
+        verifiedRole: '',
         captcha: {
             baseURL: 'https://rc-alfred.xenorio.xyz/captcha'
         },
