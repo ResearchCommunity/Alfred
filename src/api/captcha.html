@@ -76,7 +76,7 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    user: params.user,
+                    user: params.get('user'),
                     key: key
                 })
             }).then(async res => {
