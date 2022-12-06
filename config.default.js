@@ -2,7 +2,8 @@ module.exports = {
 
     keys: {
         discord: "BOT TOKEN",
-        youtube: "YOUTUBE API KEY"
+        youtube: "YOUTUBE API KEY",
+        hcaptcha: "HCAPTCHA SECRET"
     },
 
     guild: "GUILD ID",
@@ -40,10 +41,19 @@ module.exports = {
         tripsitter: '' // ID of tripsitter role
     },
 
-    rules: {
-        embed: {
-            // Embed Data
+    onboarding: {
+        captcha: {
+            baseURL: 'https://rc-alfred.xenorio.xyz/captcha'
+        },
+        rules: {
+            embed: {
+                // Discord Embed Data
+            }
         }
+    },
+
+    api: {
+        port: 3050
     }
 
 }
