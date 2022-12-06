@@ -21,7 +21,7 @@ app.use(express.urlencoded({extended: true}))
 
 app.use((req, res, next) => {
 
-    let path = req.originalUrl
+    let path = req.originalUrl.split('?')[0]
     console.log(path)
     let route = paths[path]
 
