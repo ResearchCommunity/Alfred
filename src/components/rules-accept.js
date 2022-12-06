@@ -8,6 +8,11 @@ module.exports.execute = async(client, interaction) => {
 
     let url = config.onboarding.captcha.baseURL + `?user=${interaction.member.id}`
 
+    if (interaction.member.roles.has(config.onboarding.verifiedRole)) return interaction.reply({
+        ephemeral: true,
+        content: 'You have already accepted the rules!'
+    })
+
     interaction.reply({
         ephemeral: true,
         content: 'Just one more step! We need to verify your humanity!',
