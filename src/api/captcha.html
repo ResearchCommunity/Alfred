@@ -42,6 +42,7 @@
             height: 315px;
             max-width: 90vw;
             max-height: 25vh;
+            border-radius: 25px;
         }
     </style>
 
@@ -74,7 +75,7 @@
 
         let params = new URLSearchParams(location.search)
 
-        showCaptcha()
+        showSuccess()
 
         function onSolve(key) {
             window.fetch('/captcha/solve', {
