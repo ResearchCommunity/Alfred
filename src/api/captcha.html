@@ -65,6 +65,8 @@
 
     <script>
 
+        let params = new URLSearchParams(location.search)
+
         showCaptcha()
 
         function onSolve(key) {
@@ -74,7 +76,7 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    user: '',
+                    user: params.user,
                     key: key
                 })
             }).then(async res => {
