@@ -27,7 +27,7 @@ module.exports.execute = async(client, interaction) => {
 
         case 'rule-message':
             interaction.channel.send({
-                embeds: [config.ruleEmbed],
+                embeds: [config.onboarding.rules.embed],
                 components: [{
                     type: ComponentType.ActionRow,
                     components: [{
