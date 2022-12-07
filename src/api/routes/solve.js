@@ -3,6 +3,7 @@
 
 const fetch = require('cross-fetch')
 const config = require('../../../config')
+const welcomemsg = require('../../welcome-messages')
 
 module.exports.path = '/captcha/solve'
 
@@ -27,6 +28,13 @@ module.exports.POST = async(client, req, res, next) => {
                     res.json({
                         success: true
                     })
+                    
+                    try {
+                        guild.channels.resolve(config.onboarding.welcomeChannel).send(welcomemsg.get().replaceAll('%user%', `<@${member.id}>`))
+                    } catch (error) {
+                        console.error(error)
+                    }
+
                 })
                 .catch(err => {
                     console.error(err)
