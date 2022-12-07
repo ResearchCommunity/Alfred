@@ -43,6 +43,7 @@ module.exports = {
 
     onboarding: {
         verifiedRole: '',
+        welcomeChannel: '',
         captcha: {
             baseURL: 'https://rc-alfred.xenorio.xyz/captcha'
         },
