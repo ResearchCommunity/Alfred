@@ -23,12 +23,15 @@ module.exports.POST = async(client, req, res, next) => {
             if (!member) return res.json({
                 success: false
             })
+            if (member.roles.cache.has(config.onboarding.verifiedRole)) return res.json({
+                success: true // Don't need to show an error message here
+            })
             member.roles.add(config.onboarding.verifiedRole)
                 .then(() => {
                     res.json({
                         success: true
                     })
-                    
+
                     try {
                         guild.channels.resolve(config.onboarding.welcomeChannel).send(welcomemsg.get().replaceAll('%user%', `<@${member.id}>`))
                     } catch (error) {
