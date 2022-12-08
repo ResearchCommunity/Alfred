@@ -10,7 +10,7 @@ module.exports.info = {
     name: 'threadwatch',
     description: 'Toggle automatic un-archival for a thread',
     type: ApplicationCommandType.ChatInput,
-    default_member_permissions: PermissionFlagsBits.Administrator.toString()
+    default_member_permissions: PermissionFlagsBits.ManageThreads.toString()
 }
 
 // Called whenever the command is being executed
