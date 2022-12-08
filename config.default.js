@@ -42,8 +42,8 @@ module.exports = {
     },
 
     onboarding: {
-        verifiedRole: '',
-        welcomeChannel: '',
+        verifiedRole: '', // ID of role that will be given after verification
+        welcomeChannel: '', // ID of channel for welcome messages
         captcha: {
             baseURL: 'https://rc-alfred.xenorio.xyz/captcha'
         },
