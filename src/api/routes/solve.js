@@ -32,17 +32,24 @@ module.exports.POST = async(client, req, res, next) => {
     }).then(async response => {
         let data = await response.json()
         if (data.success) {
+
             let guild = client.guilds.resolve(config.guild)
+
             let member = await guild.members.fetch(req.body.user)
+                .catch(() => {}) // Any errors here will be catched by member being undefined
+
             if (!member) return res.json({
                 success: false,
                 error: 'Invalid Member'
             })
+
             if (member.roles.cache.has(config.onboarding.verifiedRole)) return res.json({
                 success: true // Don't need to show an error message here
             })
+
             member.roles.add(config.onboarding.verifiedRole)
                 .then(() => {
+
                     res.json({
                         success: true
                     })
@@ -61,6 +68,7 @@ module.exports.POST = async(client, req, res, next) => {
                         error: 'Unable to add role'
                     })
                 })
+            
         } else {
             res.json({
                 success: false,
