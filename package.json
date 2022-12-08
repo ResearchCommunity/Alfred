@@ -13,7 +13,7 @@
     "ffmpeg-static": "^5.1.0",
     "mongodb": "^4.12.1",
     "ms": "^2.1.3",
-    "sodium-native": "^3.4.1",
+    "sodium": "^3.0.2",
     "youtube-api": "^3.0.1",
     "ytdl-core": "https://github.com/matteopolak/node-ytdl-core.git#d6b56cd67aaa38c22966b98f7b36ad3db4c90192"
   }
