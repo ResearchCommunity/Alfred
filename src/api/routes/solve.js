@@ -35,7 +35,8 @@ module.exports.POST = async(client, req, res, next) => {
             let guild = client.guilds.resolve(config.guild)
             let member = await guild.members.fetch(req.body.user)
             if (!member) return res.json({
-                success: false
+                success: false,
+                error: 'Invalid Member'
             })
             if (member.roles.cache.has(config.onboarding.verifiedRole)) return res.json({
                 success: true // Don't need to show an error message here
@@ -56,12 +57,14 @@ module.exports.POST = async(client, req, res, next) => {
                 .catch(err => {
                     console.error(err)
                     res.json({
-                        success: false
+                        success: false,
+                        error: 'Unable to add role'
                     })
                 })
         } else {
             res.json({
-                success: false
+                success: false,
+                error: 'Invalid Captcha'
             })
         }
     })
