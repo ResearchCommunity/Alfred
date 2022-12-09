@@ -75,7 +75,6 @@ module.exports.load = (cb, page) => {
 // Relevant response parameters:
 // {
 //     publishedAt: String,
-//     channelId: String,
 //     title: String,
 //     description: String,
 //     thumbnails: {
@@ -87,6 +86,7 @@ module.exports.load = (cb, page) => {
 //         ... medium, high, standard, maxres
 //     },
 //     videoOwnerChannelTitle: String,
+//     videoOwnerChannelId: String,
 //     resourceId: {
 //         videoId: String
 //     }                  
