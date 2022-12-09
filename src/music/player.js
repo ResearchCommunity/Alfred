@@ -90,6 +90,11 @@ async function play() {
 
 }
 
+function nowPlaying() {
+    return currentSong
+}
+
 module.exports = {
-    play
+    play,
+    nowPlaying
 }
