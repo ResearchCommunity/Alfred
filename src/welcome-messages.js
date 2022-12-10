@@ -20,9 +20,12 @@ let messages = [
     "A warm welcome to %user% ❤️",
     "%user% is now a fellow researcher 🧑‍🔬",
     "Welcome %user%! May the force be with you 💫",
-    "%user%: \\*Enter stage left\\*",
+    "%user%: \\*enter stage left\\*",
     "Does anyone know %user%? If not, now's the time to change that!",
-    "%user% is now ONE OF US! ONE OF US!"
+    "%user% is now ONE OF US! ONE OF US!",
+    "%user% has descended onto the server!",
+    "May I introduce everyone to %user%?",
+    "It's getting hot in here 🔥 %user% just arrived!"
 ]
 
 module.exports.get = () => {
