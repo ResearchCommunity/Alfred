@@ -72,18 +72,10 @@ async function play() {
     let stream
 
     try {
-        stream = createAudioResource(ytdl(`https://www.youtube.com/watch?v=${currentSong.resourceId.videoId}`, {
-            filter: 'audioonly',
-            format: config.music.format,
-            highWaterMark: 1 << 25,
-            requestOptions: {
-                family: 4 // Force IPv4. There are server-specific reasons for this. Just trust that they are good ones.
-            }
-        }))
+        stream = createStream()
     } catch (error) {
         console.error(error)
-            // If video could not be accessed for any reason, play the next one
-        return play()
+        stream = await awaitYoutubeReady()
     }
 
     player.play(stream)
@@ -92,6 +84,36 @@ async function play() {
 
 function nowPlaying() {
     return currentSong
+}
+
+// Checks if YouTube lets us stream again every 10 seconds, then resolves with the new stream
+function awaitYoutubeReady() {
+    return new Promise((resolve, reject) => {
+        let readyInterval = setInterval(() => {
+
+            try {
+                stream = createStream()
+            } catch (error) {
+                return
+            }
+
+            resolve(stream)
+
+            clearInterval(readyInterval)
+
+        }, 10000)
+    })
+}
+
+function createStream() {
+    return createAudioResource(ytdl(`https://www.youtube.com/watch?v=${currentSong.resourceId.videoId}`, {
+        filter: 'audioonly',
+        format: config.music.format,
+        highWaterMark: 1 << 25,
+        requestOptions: {
+            family: 4 // Force IPv4. There are server-specific reasons for this. Just trust that they are good ones.
+        }
+    }))
 }
 
 module.exports = {
