@@ -38,6 +38,10 @@ player.on(AudioPlayerStatus.Idle, () => {
     play()
 })
 
+player.on('error', err => {
+    setTimeout(play, 5000)
+})
+
 const guild = client.guilds.resolve(config.guild)
 let channel = guild.channels.resolve(config.music.channel)
 
@@ -75,7 +79,8 @@ async function play() {
         stream = createStream()
     } catch (error) {
         console.error(error)
-        stream = await awaitYoutubeReady()
+        setTimeout(play, 5000)
+        return
     }
 
     player.play(stream)
@@ -84,25 +89,6 @@ async function play() {
 
 function nowPlaying() {
     return currentSong
-}
-
-// Checks if YouTube lets us stream again every 10 seconds, then resolves with the new stream
-function awaitYoutubeReady() {
-    return new Promise((resolve, reject) => {
-        let readyInterval = setInterval(() => {
-
-            try {
-                stream = createStream()
-            } catch (error) {
-                return
-            }
-
-            resolve(stream)
-
-            clearInterval(readyInterval)
-
-        }, 10000)
-    })
 }
 
 function createStream() {
