@@ -44,6 +44,7 @@ player.on('error', err => {
 
 const guild = client.guilds.resolve(config.guild)
 let channel = guild.channels.resolve(config.music.channel)
+let ipv6 = false
 
 let currentSong
 
@@ -92,12 +93,14 @@ function nowPlaying() {
 }
 
 function createStream() {
+    ipv6 = !ipv6
+    console.log(`Using ipv${ipv6 ? 6 : 4}`) // In case there are issues with one of them
     return createAudioResource(ytdl(`https://www.youtube.com/watch?v=${currentSong.resourceId.videoId}`, {
         filter: 'audioonly',
         format: config.music.format,
         highWaterMark: 1 << 25,
         requestOptions: {
-            family: 4 // Force IPv4. There are server-specific reasons for this. Just trust that they are good ones.
+            family: ipv6 ? 6 : 4 // Switch between ipv4 and ipv6 every time. Cheap way to double ratelimits ^^
         }
     }))
 }
