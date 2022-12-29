@@ -41,6 +41,7 @@ module.exports.load = (cb) => {
         if (!fs.existsSync(`./music/${jsonFile}`)) return
         let data = require(`../../music/${jsonFile}`)
         playlist.push({
+            file: file,
             publishedAt: (new Date(data.epoch)).toISOString(),
             title: data.title,
             description: data.description,
@@ -78,7 +79,7 @@ module.exports.next = () => {
             if (config.music.shuffle) shuffle()
         }
 
-        item.resource = createAudioResource(`./music/${file}`)
+        item.resource = createAudioResource(`./music/${item.file}`)
 
         resolve(item)
     })
