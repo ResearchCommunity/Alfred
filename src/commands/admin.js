@@ -45,6 +45,11 @@ module.exports.execute = async(client, interaction) => {
                         label: 'Rule Message',
                         description: 'Send a rule message in this channel',
                         value: 'rule-message'
+                    },
+                    {
+                        label: 'Music Mode',
+                        description: 'Switch between live and local audio streaming',
+                        value: 'music-switch'
                     }
                 ]
             }]

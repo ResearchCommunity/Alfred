@@ -27,6 +27,11 @@ module.exports = async(client) => {
 
     loadCommands(client)
 
+    if (!fs.existsSync('./music/touched')) {
+        await require('../music/download').download()
+    }
+    require('../music/download').init()
+
     require('../music/player').play()
     require('../api/server').start(client, config.api.port)
 

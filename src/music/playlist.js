@@ -18,6 +18,8 @@
 const yt = require('youtube-api');
 const ms = require('ms')
 const config = require('../../config')
+const { createAudioResource } = require('@discordjs/voice')
+const ytdl = require('ytdl-core')
 
 yt.authenticate({
     type: 'key',
@@ -26,6 +28,7 @@ yt.authenticate({
 
 let playlist = []
 let listindex = 0
+let ipv6 = false
 
 module.exports.init = () => {
     return new Promise((resolve, reject) => {
@@ -74,6 +77,7 @@ module.exports.load = (cb, page) => {
 //
 // Relevant response parameters:
 // {
+//     resource: Object,
 //     publishedAt: String,
 //     title: String,
 //     description: String,
@@ -105,6 +109,18 @@ module.exports.next = () => {
             listindex = 0
             if (config.music.shuffle) shuffle()
         }
+
+        ipv6 = !ipv6
+        console.log(`Using ipv${ipv6 ? 6 : 4}`) // In case there are issues with one of them
+
+        item.resource = createAudioResource(ytdl(`https://www.youtube.com/watch?v=${item.resourceId.videoId}`, {
+            filter: 'audioonly',
+            format: config.music.format,
+            highWaterMark: 1 << 25,
+            requestOptions: {
+                family: ipv6 ? 6 : 4 // Switch between ipv4 and ipv6 every time. Cheap way to double ratelimits ^^
+            }
+        }))
 
         resolve(item)
     })
