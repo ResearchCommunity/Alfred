@@ -16,8 +16,8 @@
 // ######################################################################### //
 
 const { client } = require('../index')
-const ytdl = require('ytdl-core')
 const playlist = require('./playlist')
+const playlistLocal = require('./playlist-local')
 const config = require('../../config')
 const {
     createAudioPlayer,
@@ -27,6 +27,18 @@ const {
     VoiceConnectionStatus,
     AudioPlayerStatus
 } = require('@discordjs/voice')
+const mongo = require('../mongo')
+
+let local = true
+
+mongo.queryOne('Settings', { name: 'music-mode' })
+    .then(data => {
+        if (!data) return mongo.insert('Settings', {
+            name: 'music-mode',
+            value: true
+        })
+        local = data.value
+    })
 
 const player = createAudioPlayer({
     behaviors: {
@@ -44,7 +56,6 @@ player.on('error', err => {
 
 const guild = client.guilds.resolve(config.guild)
 let channel = guild.channels.resolve(config.music.channel)
-let ipv6 = false
 
 let currentSong
 
@@ -71,20 +82,16 @@ async function join() {
 
 async function play() {
     if (!connection) await join()
-    currentSong = await playlist.next()
-    console.log(`Playing | ${currentSong.title}`)
 
-    let stream
-
-    try {
-        stream = createStream()
-    } catch (error) {
-        console.error(error)
-        setTimeout(play, 5000)
-        return
+    if (local) {
+        currentSong = await playlistLocal.next()
+    } else {
+        currentSong = await playlist.next()
     }
 
-    player.play(stream)
+    console.log(`Playing | ${currentSong.title}`)
+
+    player.play(currentSong.resource)
 
 }
 
@@ -92,20 +99,14 @@ function nowPlaying() {
     return currentSong
 }
 
-function createStream() {
-    ipv6 = !ipv6
-    console.log(`Using ipv${ipv6 ? 6 : 4}`) // In case there are issues with one of them
-    return createAudioResource(ytdl(`https://www.youtube.com/watch?v=${currentSong.resourceId.videoId}`, {
-        filter: 'audioonly',
-        format: config.music.format,
-        highWaterMark: 1 << 25,
-        requestOptions: {
-            family: ipv6 ? 6 : 4 // Switch between ipv4 and ipv6 every time. Cheap way to double ratelimits ^^
-        }
-    }))
+function switchLocal() {
+    local = !local
+    mongo.update('Settings', { name: 'music-mode' }, { value: local })
+    return local
 }
 
 module.exports = {
     play,
-    nowPlaying
+    nowPlaying,
+    switchLocal
 }

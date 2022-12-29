@@ -2,3 +2,6 @@ config.js
 node_modules
 .vscode
 *.mp3
+*.webm
+music/*.json
+music/touched

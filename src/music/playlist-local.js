@@ -15,29 +15,15 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 // ######################################################################### //
 
-const yt = require('youtube-api');
-const ms = require('ms')
+const fs = require('fs')
 const config = require('../../config')
 const { createAudioResource } = require('@discordjs/voice')
-const ytdl = require('ytdl-core')
-
-yt.authenticate({
-    type: 'key',
-    key: config.keys.youtube
-})
 
 let playlist = []
 let listindex = 0
-let ipv6 = false
 
 module.exports.init = () => {
     return new Promise((resolve, reject) => {
-
-        setInterval(() => {
-            this.load(() => {
-                if (config.music.shuffle) shuffle()
-            })
-        }, ms(config.music.refresh))
 
         this.load(() => {
             if (config.music.shuffle) shuffle()
@@ -48,54 +34,37 @@ module.exports.init = () => {
 }
 
 // Recursively loads all items from a YouTube playlist and adds them to playlist array
-module.exports.load = (cb, page) => {
-    yt.playlistItems.list({
-        part: 'snippet',
-        playlistId: config.music.playlist,
-        maxResults: 50,
-        pageToken: page
-    }, (err, res) => {
-        if (err) return console.error(err)
-        let data = res.data
-        let items = data.items
+module.exports.load = (cb) => {
+    fs.readdirSync('./music').forEach(file => {
+        if (!file.endsWith('.mp3')) return
+        let jsonFile = file.split('.mp3')[0] + '.info.json'
+        if (!fs.existsSync(`./music/${jsonFile}`)) return
+        let data = require(`../../music/${jsonFile}`)
+        playlist.push({
+            resource: createAudioResource(`./music/${file}`),
+            publishedAt: (new Date(data.epoch)).toISOString(),
+            title: data.title,
+            description: data.description,
+            thumbnails: {
+                default: {
+                    url: data.thumbnail,
+                    width: 1,
+                    height: 1
+                }
+            },
+            videoOwnerChannelTitle: data.uploader,
+            videoOwnerChannelId: data.uploader_id,
+            resourceId: {
+                videoId: data.id
+            }
 
-        items.forEach(item => {
-            if (item.snippet.title == "Deleted video") return
-            playlist.push(item.snippet)
         })
-
-        if (data.nextPageToken) {
-            this.load(cb, data.nextPageToken)
-        } else {
-            cb()
-        }
-
     })
+
+    cb()
 }
 
 // Returns the next playlist item. Loads the playlist if it's empty.
-//
-// Relevant response parameters:
-// {
-//     resource: Object,
-//     publishedAt: String,
-//     title: String,
-//     description: String,
-//     thumbnails: {
-//         default: {
-//             url: String,
-//             width: Number,
-//             height: Number
-//         }
-//         ... medium, high, standard, maxres
-//     },
-//     videoOwnerChannelTitle: String,
-//     videoOwnerChannelId: String,
-//     resourceId: {
-//         videoId: String
-//     }                  
-// }
-
 module.exports.next = () => {
     return new Promise(async(resolve, reject) => {
 
@@ -109,18 +78,6 @@ module.exports.next = () => {
             listindex = 0
             if (config.music.shuffle) shuffle()
         }
-
-        ipv6 = !ipv6
-        console.log(`Using ipv${ipv6 ? 6 : 4}`) // In case there are issues with one of them
-
-        item.resource = createAudioResource(ytdl(`https://www.youtube.com/watch?v=${item.resourceId.videoId}`, {
-            filter: 'audioonly',
-            format: config.music.format,
-            highWaterMark: 1 << 25,
-            requestOptions: {
-                family: ipv6 ? 6 : 4 // Switch between ipv4 and ipv6 every time. Cheap way to double ratelimits ^^
-            }
-        }))
 
         resolve(item)
     })
