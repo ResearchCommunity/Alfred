@@ -37,7 +37,7 @@ module.exports.info = {
 // Called whenever the command is being executed
 module.exports.execute = async(client, interaction) => {
 
-    let guildRoles = await interaction.guild.roles.fetch()
+    await interaction.guild.members.fetch()
 
     let query = interaction.options.getString('query', true).toUpperCase()
 
@@ -105,9 +105,10 @@ module.exports.execute = async(client, interaction) => {
     member.roles.cache.forEach(x => {
         if (role.id == x.id) return
         mongo.queryOne('CountryRoles', { id: x.id })
-            .then(data => {
+            .then(async data => {
+                x = await interaction.guild.roles.fetch(x.id)
                 if (data) {
-                    if (guildRoles.get(x.id).members.size - 1 <= 0) {
+                    if (x.members.size - 1 <= 0) {
                         mongo.delete('CountryRoles', { id: x.id })
                         x.delete()
                     } else {
