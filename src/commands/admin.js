@@ -47,6 +47,11 @@ module.exports.execute = async(client, interaction) => {
                         value: 'rule-message'
                     },
                     {
+                        label: 'Country Role Message',
+                        description: 'Send a country role message in this channel',
+                        value: 'country-role-message'
+                    },
+                    {
                         label: 'Music Mode',
                         description: 'Switch between live and local audio streaming',
                         value: 'music-switch'
