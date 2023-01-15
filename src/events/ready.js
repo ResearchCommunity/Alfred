@@ -18,8 +18,12 @@
 const config = require('../../config')
 const fs = require('fs')
 const { Routes } = require('discord-api-types/v9')
+const mongo = require('../mongo')
+const ms = require('ms')
 
-module.exports = async(client) => {
+module.exports = async (client) => {
+    
+    let guild = client.guilds.resolve(config.guild)
 
     client.user.setPresence(config.presence)
 
@@ -34,6 +38,25 @@ module.exports = async(client) => {
 
     require('../music/player').play()
     require('../api/server').start(client, config.api.port)
+
+    // Purge country roles
+    setInterval(async() => {
+        await guild.members.fetch()
+        mongo.query('CountryRoles', {})
+            .then(async data => {
+                data.forEach(async x => {
+
+                    x = await guild.roles.fetch(x.id)
+                    if (!x) return mongo.delete('CountryRoles', { id: x.id })
+
+                    if (x.members.size <= 0) {
+                        mongo.delete('CountryRoles', { id: x.id })
+                        x.delete()
+                    }
+
+                })
+            })
+    }, ms('1h'))
 
 }
 
