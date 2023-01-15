@@ -63,13 +63,22 @@ module.exports.execute = async(client, interaction) => {
                 ephemeral: true
             }))
             break;
-        
+
         case 'music-switch':
             let newValue = require('../music/player').switchLocal()
             interaction.reply({
                 ephemeral: true,
                 content: `Music mode has been switched to **${newValue ? 'local' : 'live'}**`
             })
+            break;
+
+        case 'country-role-message':
+            interaction.channel.send({
+                embeds: [config.countryroles.embed]
+            }).then(() => interaction.reply({
+                content: 'Message successfully created!',
+                ephemeral: true
+            }))
             break;
 
         default:
