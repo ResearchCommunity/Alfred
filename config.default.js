@@ -56,6 +56,12 @@ module.exports = {
 
     api: {
         port: 3050
+    },
+
+    countryroles: {
+        embed: {
+            // Discord Embed Data
+        }
     }
 
 }
