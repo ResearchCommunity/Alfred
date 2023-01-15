@@ -39,25 +39,6 @@ module.exports = async (client) => {
     require('../music/player').play()
     require('../api/server').start(client, config.api.port)
 
-    // Purge country roles
-    setInterval(async() => {
-        await guild.members.fetch()
-        mongo.query('CountryRoles', {})
-            .then(async data => {
-                data.forEach(async x => {
-
-                    x = await guild.roles.fetch(x.id)
-                    if (!x) return mongo.delete('CountryRoles', { id: x.id })
-
-                    if (x.members.size <= 0) {
-                        mongo.delete('CountryRoles', { id: x.id })
-                        x.delete()
-                    }
-
-                })
-            })
-    }, ms('1h'))
-
 }
 
 function loadCommands(client) {
