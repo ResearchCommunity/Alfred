@@ -113,7 +113,7 @@ module.exports.execute = async(client, interaction) => {
         if (role.id == x.id) return
         mongo.queryOne('CountryRoles', { id: x.id })
             .then(async data => {
-                if (data.count === undefined) return
+                if (data.count === undefined || data.count === NaN) return
                 x = await interaction.guild.roles.fetch(x.id)
                 if (data) {
                     console.log('current count: ' + data.count)
