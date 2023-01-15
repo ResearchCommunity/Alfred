@@ -87,15 +87,21 @@ module.exports.execute = async(client, interaction) => {
         ephemeral: true
     })
 
-    if (!roledata) mongo.insert('CountryRoles', {
-        name: country.name,
-        alpha2: country.alpha2,
-        id: role.id
-    })
+    if (!roledata) {
+        roledata = {
+            name: country.name,
+            alpha2: country.alpha2,
+            id: role.id,
+            count: 0
+        }
+        mongo.insert('CountryRoles', roledata)
+    }
 
     let member = await interaction.member.fetch()
 
     member.roles.add(role)
+
+    mongo.update('CountryRoles', { id: role.id }, { count: roledata.count + 1})
 
     interaction.reply({
         content: `You now have the <@&${role.id}> role!`,
@@ -107,13 +113,15 @@ module.exports.execute = async(client, interaction) => {
         if (role.id == x.id) return
         mongo.queryOne('CountryRoles', { id: x.id })
             .then(async data => {
+                if(data.count === undefined)return
                 x = await interaction.guild.roles.fetch(x.id)
                 if (data) {
-                    if (x.members.size - 1 <= 0) {
+                    if (data.count - 1 <= 0) {
                         mongo.delete('CountryRoles', { id: x.id })
                         x.delete()
                     } else {
                         member.roles.remove(x)
+                        mongo.update('CountryRoles', {id: x.id}, {count: data.count - 1})
                     }
                 }
             })
