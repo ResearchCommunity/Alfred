@@ -116,14 +116,14 @@ module.exports.execute = async(client, interaction) => {
                 x = await interaction.guild.roles.fetch(x.id)
                 if (data) {
                     if (data.count === undefined || data.count === NaN) return
-                    console.log('current count: ' + data.count)
+                    //console.log('current count: ' + data.count)
                     if (data.count - 1 <= 0) {
                         mongo.delete('CountryRoles', { id: x.id })
                         x.delete()
                     } else {
                         member.roles.remove(x)
                         mongo.update('CountryRoles', { id: x.id }, { count: data.count - 1 })
-                        console.log('updated count: ' + data.count - 1)
+                        //console.log('updated count: ' + data.count - 1)
                     }
                 }
             })
