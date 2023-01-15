@@ -74,10 +74,11 @@ module.exports.execute = async(client, interaction) => {
             mongo.delete('CountryRoles', { alpha2: country.alpha2 }).catch(() => {})
             roledata = false
         }
+        let verifiedRole = await interaction.guild.roles.fetch(config.onboarding.verifiedRole)
         role = await interaction.guild.roles.create({
             name: `${country.emoji} ${country.name}`,
             color: '#' + (Math.random() * 0xFFFFFF << 0).toString(16).padStart(6, '0'), // Random hex color
-            position: guildRoles.get(config.onboarding.verifiedRole).position - 1
+            position: verifiedRole.position - 1
         })
     }
 
