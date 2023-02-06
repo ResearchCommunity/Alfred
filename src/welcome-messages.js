@@ -25,7 +25,13 @@ let messages = [
     "%user% is now ONE OF US! ONE OF US!",
     "%user% has descended onto the server!",
     "May I introduce everyone to %user%?",
-    "It's getting hot in here 🔥 %user% just arrived!"
+    "It's getting hot in here 🔥 %user% just arrived!",
+    "Roses are red, violets are blue, %user% just joined, and I can't rhyme",
+    "This server has been sponsored by Raid Shadow Legends. Oh, and by %user%",
+    "%user% just left. If it was opposite day, that is.",
+    "🤖 Beep Boop EVENT_USER_JOIN %user% ; DESTROY_ALL_HUMANS_INIT Boop Beep 🤖",
+    "EVERYONE QUIET! %user% is here!",
+    "Finally, after all these years, %user% has joined!"
 ]
 
 module.exports.get = () => {
