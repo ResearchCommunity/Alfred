@@ -62,6 +62,9 @@ let currentSong
 let connection
 
 async function join() {
+
+    if(connection)connection.removeAllListeners()
+
     connection = await joinVoiceChannel({
         channelId: channel.id,
         guildId: channel.guild.id,
