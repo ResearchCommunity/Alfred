@@ -62,7 +62,7 @@ let currentSong
 let connection
 
 async function join() {
-    let connection = await joinVoiceChannel({
+    connection = await joinVoiceChannel({
         channelId: channel.id,
         guildId: channel.guild.id,
         adapterCreator: channel.guild.voiceAdapterCreator
