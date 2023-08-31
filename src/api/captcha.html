@@ -168,7 +168,7 @@
 			}).then(async res => {
 				let data = await res.json()
 				if (data.success) {
-					showAge()
+					showSuccess()
 				} else {
 					alert('Error: ' + data.error)
 				}
