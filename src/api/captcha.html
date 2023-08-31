@@ -21,122 +21,183 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Research Community | Captcha</title>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Research Community | Captcha</title>
 
-    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
-    <script src="https://unpkg.com/cross-fetch/dist/cross-fetch.js"></script>
+	<script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+	<script src="https://unpkg.com/cross-fetch/dist/cross-fetch.js"></script>
 
-    <style>
-        html,
-        body {
-            margin: 0;
-            background-color: #36393f;
-            text-align: center;
-            color: white;
-        }
-        #content {
-            margin: 0;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translateY(-50%) translateX(-50%);
-            background-color: #2f3136;
-            padding: 2rem;
-            border-radius: 25px;
-            max-width: 100vw;
-        }
-        img {
-            border-radius: 25px;
-            width: 8rem;
-        }
-        #ytembed {
-            width: 560px;
-            height: 315px;
-            max-width: 90vw;
-            max-height: 25vh;
-            border-radius: 25px;
-        }
-    </style>
+	<style>
+		html,
+		body {
+			margin: 0;
+			background-color: #36393f;
+			text-align: center;
+			color: white;
+		}
+
+		#content {
+			margin: 0;
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translateY(-50%) translateX(-50%);
+			background-color: #2f3136;
+			padding: 2rem;
+			border-radius: 25px;
+			max-width: 100vw;
+		}
+
+		img {
+			border-radius: 25px;
+			width: 8rem;
+		}
+
+		#ytembed {
+			width: 560px;
+			height: 315px;
+			max-width: 90vw;
+			max-height: 25vh;
+			border-radius: 25px;
+		}
+
+		.btn {
+			color: white;
+			margin-left: 1rem;
+			height: 2rem;
+			border-style: solid;
+		}
+
+		#age-confirm {
+			background: green;
+		}
+
+		#age-deny {
+			background: red;
+		}
+
+	</style>
 
 </head>
 
 <body>
 
-    <div id="content">
-        <noscript>
-            <h3>Hello there, fellow NoScript user!</h3>
-            <h4>We need to display a captcha here. Please whitelist at least the following domains:</h4>
-            <ul>
-                <li>xenorio.xyz | This site</li>
-                <li>hcaptcha.com | Captcha service</li>
-                <li>gstatic.com | hCaptcha dependency</li>
-                <li>unpkg.com | Request library for communicating with the backend of this site</li>
-            </ul>
-            <h4>
-                Everything else is not strictly needed for this to work.<br>
-                We promise not to do anything sketchy! You can verify this for yourself <a href="https://github.com/ResearchCommunity/Alfred">here</a>!
-            </h4>
-            <h5>
-                No idea what this NoScript thing is? <br>
-                Either you're using a heavily outdated browser, or you'll need to go ask whoever is responsible for the system you're using.
-            </h5>
-        </noscript>
-        <div id="content-captcha" style="display: none;">
-            <img src="https://github.com/ResearchCommunity/Website/raw/main/static/logo.png" alt="Logo">
-            <h3>Solve the captcha to get access to the Research Community!</h3>
-            <div class="h-captcha" data-sitekey="046fea03-aad9-4e07-8d2c-41a1ddfff729" data-theme="dark" data-callback="onSolve"></div>
-        </div>
-        <div id="content-success" style="display: none;">
-            <img src="https://github.com/ResearchCommunity/Website/raw/main/static/logo.png" alt="Logo">
-            <h3>Success!</h3>
-            <h4>You now have access to the Research Community</h4>
-            <h5>You can close this page now. Or stay and watch some cute puppies!</h5>
-            <iframe id="ytembed" src="https://www.youtube-nocookie.com/embed/B1CPE6WWsAQ" title="YouTube video player"
-                frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowfullscreen></iframe>
-        </div>
-    </div>
+	<div id="content">
+		<noscript>
+			<h3>Hello there, fellow NoScript user!</h3>
+			<h4>We need to display a captcha here. Please whitelist at least the following domains:</h4>
+			<ul>
+				<li>xenorio.xyz | This site</li>
+				<li>hcaptcha.com | Captcha service</li>
+				<li>gstatic.com | hCaptcha dependency</li>
+				<li>unpkg.com | Request library for communicating with the backend of this site</li>
+			</ul>
+			<h4>
+				Everything else is not strictly needed for this to work.<br>
+				We promise not to do anything sketchy! You can verify this for yourself <a
+					href="https://github.com/ResearchCommunity/Alfred">here</a>!
+			</h4>
+			<h5>
+				No idea what this NoScript thing is? <br>
+				Either you're using a heavily outdated browser, or you'll need to go ask whoever is responsible for the
+				system you're using.
+			</h5>
+		</noscript>
 
-    <script>
+		<div id="content-age" style="display: none;">
+			<img src="https://github.com/ResearchCommunity/Website/raw/main/static/logo.png" alt="Logo">
+			<h3>Are you over the age of 18?</h3>
+			<h4>
+				This community is focused around topics which may be harmful to minors. <br><br>
+				You must be at least 18 years old to join.
+			</h4>
+			<button class="btn" id="age-deny" onclick="showAgeDeny()">No, I'm a minor</button>
+			<button class="btn" id="age-confirm" onclick="showCaptcha()">Yes, I'm 18+</button>
+		</div>
 
-        let params = new URLSearchParams(location.search)
+		<div id="content-age-deny" style="display: none;">
+			<img src="https://github.com/ResearchCommunity/Website/raw/main/static/logo.png" alt="Logo">
+			<h3>Sorry, can't let you in!</h3>
+			<h4>
+				Taking any psychoactive substance before the brain is fully developed (usually around the age of 21) is very harmful, even when proper harm-reduction measures are taken. 
+				<br><br>
+				While we would love to further educate you on this, Discord does not allow us to.
+				<br><br>
+				However, feel free to use our alternative platforms, which you can find <a href="https://research-community.org">here</a>!
+			</h4>
+		</div>
 
-        showCaptcha()
+		<div id="content-captcha" style="display: none;">
+			<img src="https://github.com/ResearchCommunity/Website/raw/main/static/logo.png" alt="Logo">
+			<h3>Solve this captcha to get access to the Research Community!</h3>
+			<div class="h-captcha" data-sitekey="046fea03-aad9-4e07-8d2c-41a1ddfff729" data-theme="dark"
+				data-callback="onSolve"></div>
+		</div>
 
-        function onSolve(key) {
-            window.fetch('/captcha/solve', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    user: params.get('user'),
-                    key: key
-                })
-            }).then(async res => {
-                let data = await res.json()
-                if(data.success){
-                    showSuccess()
-                }else{
-                    alert('Error: ' + data.error)
-                }
-            })
-        }
+		<div id="content-success" style="display: none;">
+			<img src="https://github.com/ResearchCommunity/Website/raw/main/static/logo.png" alt="Logo">
+			<h3>Success!</h3>
+			<h4>You now have access to the Research Community</h4>
+			<h5>You can close this page now. Or stay and watch some cute puppies!</h5>
+			<iframe id="ytembed" src="https://www.youtube-nocookie.com/embed/B1CPE6WWsAQ" title="YouTube video player"
+				frameborder="0"
+				allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+				allowfullscreen></iframe>
+		</div>
 
-        function showCaptcha() {
-            document.getElementById('content-captcha').setAttribute('style', '')
-            document.getElementById('content-success').setAttribute('style', 'display: none;')
-        }
+	</div>
 
-        function showSuccess() {
-            document.getElementById('content-captcha').setAttribute('style', 'display: none;')
-            document.getElementById('content-success').setAttribute('style', '')
-        }
+	<script>
 
-    </script>
+		let params = new URLSearchParams(location.search)
+
+		showAge()
+
+		function onSolve(key) {
+			window.fetch('/captcha/solve', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					user: params.get('user'),
+					key: key
+				})
+			}).then(async res => {
+				let data = await res.json()
+				if (data.success) {
+					showAge()
+				} else {
+					alert('Error: ' + data.error)
+				}
+			})
+		}
+
+		function showAge() {
+			document.getElementById('content-captcha').setAttribute('style', 'display: none;')
+			document.getElementById('content-age').setAttribute('style', '')
+		}
+
+		function showAgeDeny() {
+			document.getElementById('content-age').setAttribute('style', 'display: none;')
+			document.getElementById('content-age-deny').setAttribute('style', '')
+		}
+
+		function showCaptcha() {
+			document.getElementById('content-age').setAttribute('style', 'display: none;')
+			document.getElementById('content-captcha').setAttribute('style', '')
+		}
+
+		function showSuccess() {
+			document.getElementById('content-captcha').setAttribute('style', 'display: none;')
+			document.getElementById('content-success').setAttribute('style', '')
+		}
+
+
+
+	</script>
 
 </body>
 
