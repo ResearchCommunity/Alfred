@@ -15,10 +15,12 @@
 
 const trackers = {
 	'youtu.be': [
-		'si'
+		'si',
+		'fbclid'
 	],
 	'youtube.com': [
-		'si'
+		'si',
+		'fbclid'
 	]
 }
 
