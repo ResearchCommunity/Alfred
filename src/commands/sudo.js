@@ -16,6 +16,7 @@
 // ######################################################################### //
 
 const { ApplicationCommandType, ApplicationCommandOptionType, PermissionFlagsBits } = require('discord.js')
+const mongo = require('../mongo')
 
 // Passed to Discord when registering the command
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object
