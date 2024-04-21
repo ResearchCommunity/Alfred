@@ -114,7 +114,7 @@
 				You must be at least 18 years old to join.
 			</h4>
 			<button class="btn" id="age-deny" onclick="showAgeDeny()">No, I'm a minor</button>
-			<button class="btn" id="age-confirm" onclick="showCaptcha()">Yes, I'm 18+</button>
+			<button class="btn" id="age-confirm" onclick="showDisclaimer()">Yes, I'm 18+</button>
 		</div>
 
 		<div id="content-age-deny" style="display: none;">
@@ -126,6 +126,20 @@
 				While we would love to further educate you on this, Discord does not allow us to.
 				<br><br>
 				However, feel free to use our alternative platforms, which you can find <a href="https://research-community.org">here</a>!
+			</h4>
+		</div>
+
+		<div id="content-disclaimer" style="display: none;">
+			<img src="https://github.com/ResearchCommunity/Website/raw/main/static/logo.png" alt="Logo">
+			<h3>This is not vendor support!</h3>
+			<h4>
+				This Discord server is not affiliated with any vendor, no matter where you may have found a link to it.
+				<br><br>
+				We cannot and will not answer any vendor-specific questions you may have!
+				<br><br>
+				In addition, our rules forbid the mentioning of any vendors, as per Discord's terms of service.
+				<br><br>
+				To show that you understand this, click <a style="cursor: pointer;" onclick="showCaptcha()">&lt;this text&gt;</a>
 			</h4>
 		</div>
 
@@ -185,8 +199,13 @@
 			document.getElementById('content-age-deny').setAttribute('style', '')
 		}
 
-		function showCaptcha() {
+		function showDisclaimer() {
 			document.getElementById('content-age').setAttribute('style', 'display: none;')
+			document.getElementById('content-disclaimer').setAttribute('style', '')
+		}
+
+		function showCaptcha() {
+			document.getElementById('content-disclaimer').setAttribute('style', 'display: none;')
 			document.getElementById('content-captcha').setAttribute('style', '')
 		}
 
