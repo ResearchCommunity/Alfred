@@ -50,7 +50,7 @@
 			max-width: 100vw;
 		}
 
-		img {
+		.logo {
 			border-radius: 25px;
 			width: 8rem;
 		}
@@ -117,7 +117,7 @@
 		</noscript>
 
 		<div id="content-age" style="display: none;">
-			<img src="https://github.com/ResearchCommunity/Website/raw/main/static/logo.png" alt="Logo">
+			<img class="logo" src="https://github.com/ResearchCommunity/Website/raw/main/static/logo.png" alt="Logo">
 			<h3>Are you over the age of 18?</h3>
 			<h4>
 				This community is focused around topics which may be harmful to minors. <br><br>
@@ -128,7 +128,7 @@
 		</div>
 
 		<div id="content-age-deny" style="display: none;">
-			<img src="https://github.com/ResearchCommunity/Website/raw/main/static/logo.png" alt="Logo">
+			<img class="logo" src="https://github.com/ResearchCommunity/Website/raw/main/static/logo.png" alt="Logo">
 			<h3>Sorry, can't let you in!</h3>
 			<h4>
 				Taking any psychoactive substance before the brain is fully developed (usually around the age of 21) is very harmful, even when proper harm-reduction measures are taken. 
@@ -140,7 +140,7 @@
 		</div>
 
 		<div id="content-disclaimer" style="display: none;">
-			<img src="https://github.com/ResearchCommunity/Website/raw/main/static/logo.png" alt="Logo">
+			<img class="logo" src="https://github.com/ResearchCommunity/Website/raw/main/static/logo.png" alt="Logo">
 			<h3>This is not vendor/shop support!</h3>
 			<h4>
 				This Discord server is not affiliated with any vendor/shop, no matter where you may have found a link to it.
@@ -149,19 +149,22 @@
 				<br><br>
 				In addition, our rules forbid the mentioning of any vendors/shops, as per Discord's terms of service.
 				<br><br>
-				To show that you understand this, click <a style="cursor: pointer;" onclick="showCaptcha()">&lt;this text&gt;</a>
+				To show that you understand this, enter the following text: <br><br>
+				<img src="/disclaimer_text.png" alt="This server is not affiliated with any vendor" style="width: 50%;">
+				<br><br>
+				<input id="disclaimer-input" style="width: 50%;" type="text" placeholder="Enter above text here">
 			</h4>
 		</div>
 
 		<div id="content-captcha" style="display: none;">
-			<img src="https://github.com/ResearchCommunity/Website/raw/main/static/logo.png" alt="Logo">
+			<img class="logo" src="https://github.com/ResearchCommunity/Website/raw/main/static/logo.png" alt="Logo">
 			<h3>Solve this captcha to get access to the Research Community!</h3>
 			<div class="h-captcha" data-sitekey="046fea03-aad9-4e07-8d2c-41a1ddfff729" data-theme="dark"
 				data-callback="onSolve"></div>
 		</div>
 
 		<div id="content-success" style="display: none;">
-			<img src="https://github.com/ResearchCommunity/Website/raw/main/static/logo.png" alt="Logo">
+			<img class="logo" src="https://github.com/ResearchCommunity/Website/raw/main/static/logo.png" alt="Logo">
 			<h3>Success!</h3>
 			<h4>You now have access to the Research Community</h4>
 			<h5>You can close this page now. Or stay and watch some cute puppies!</h5>
@@ -174,6 +177,13 @@
 	</div>
 
 	<script>
+
+		const disclaimerInput = document.getElementById('disclaimer-input')
+
+		disclaimerInput.value = ""
+		disclaimerInput.addEventListener('input', () => {
+			checkDisclaimerInput()
+		})
 
 		let params = new URLSearchParams(location.search)
 
@@ -212,6 +222,12 @@
 		function showDisclaimer() {
 			document.getElementById('content-age').setAttribute('style', 'display: none;')
 			document.getElementById('content-disclaimer').setAttribute('style', '')
+		}
+
+		function checkDisclaimerInput() {
+			if(disclaimerInput.value.trim() == 'This server is not affiliated with any vendor') {
+				showCaptcha()
+			}
 		}
 
 		function showCaptcha() {

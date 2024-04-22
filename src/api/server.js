@@ -17,17 +17,24 @@
 
 const express = require('express')
 const fs = require('fs')
+const pathmod = require('path')
 
 const app = express()
 
 let discord
 
 let paths = {}
+let staticPaths = []
 
 let files = fs.readdirSync('./src/api/routes')
 files.forEach(file => {
     let route = require(`./routes/${file}`)
     paths[route.path] = route
+})
+
+let staticFiles = fs.readdirSync('./src/api/static')
+staticFiles.forEach(file => {
+    staticPaths.push(`/${file}`)
 })
 
 app.use(express.json())
@@ -38,7 +45,14 @@ app.use((req, res, next) => {
     let path = req.originalUrl.split('?')[0]
     let route = paths[path]
 
-    if (!route) return res.status(404).send('404 - Not Found')
+    if (!route) {
+
+		if(staticPaths.includes(path)) {
+			return res.sendFile(pathmod.resolve(`src/api/static${path}`))
+		}
+
+		return res.status(404).send('404 - Not Found')
+	}
 
     if (!route[req.method]) return res.status(404).send('404 - Not Found - Incorrect Request Method')
 

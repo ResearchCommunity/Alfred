@@ -20,5 +20,5 @@ const path = require('path')
 module.exports.path = '/captcha'
 
 module.exports.GET = async(client, req, res, next) => {
-    res.sendFile(path.resolve('src/api/captcha.html'))
+    res.sendFile(path.resolve('src/api/static/captcha.html'))
 }
