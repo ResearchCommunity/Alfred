@@ -33,6 +33,7 @@
 		html,
 		body {
 			margin: 0;
+			padding: 0;
 			background-color: #36393f;
 			text-align: center;
 			color: white;
@@ -88,6 +89,15 @@
 			text-decoration: none;
 		}
 
+		@media only screen and (max-width: 600px) {
+			#content {
+				width: 100%;
+				border-radius: 0;
+				padding: 0;
+				padding-top: 2rem;
+				padding-bottom: 2rem;
+			}
+		}
 	</style>
 
 </head>
@@ -131,11 +141,13 @@
 			<img class="logo" src="https://github.com/ResearchCommunity/Website/raw/main/static/logo.png" alt="Logo">
 			<h3>Sorry, can't let you in!</h3>
 			<h4>
-				Taking any psychoactive substance before the brain is fully developed (usually around the age of 21) is very harmful, even when proper harm-reduction measures are taken. 
+				Taking any psychoactive substance before the brain is fully developed (usually around the age of 21) is
+				very harmful, even when proper harm-reduction measures are taken.
 				<br><br>
 				While we would love to further educate you on this, Discord does not allow us to.
 				<br><br>
-				However, feel free to use our alternative platforms, which you can find <a href="https://research-community.org">here</a>!
+				However, feel free to use our alternative platforms, which you can find <a
+					href="https://research-community.org">here</a>!
 			</h4>
 		</div>
 
@@ -143,7 +155,8 @@
 			<img class="logo" src="https://github.com/ResearchCommunity/Website/raw/main/static/logo.png" alt="Logo">
 			<h3>This is not vendor/shop support!</h3>
 			<h4>
-				This Discord server is not affiliated with any vendor/shop, no matter where you may have found a link to it.
+				This Discord server is not affiliated with any vendor/shop, no matter where you may have found a link to
+				it.
 				<br><br>
 				We cannot and will not answer any vendor/shop-specific questions you may have!
 				<br><br>
@@ -225,7 +238,7 @@
 		}
 
 		function checkDisclaimerInput() {
-			if(disclaimerInput.value.trim() == 'This server is not affiliated with any vendor') {
+			if (disclaimerInput.value.toLowerCase().trim() == 'this server is not affiliated with any vendor') {
 				showCaptcha()
 			}
 		}
