@@ -89,6 +89,12 @@
 			text-decoration: none;
 		}
 
+		.prevent-select {
+			-webkit-user-select: none;
+			-ms-user-select: none;
+			user-select: none;
+		}
+
 		@media only screen and (max-width: 600px) {
 			#content {
 				width: 100%;
@@ -163,7 +169,7 @@
 				In addition, our rules forbid the mentioning of any vendors/shops, as per Discord's terms of service.
 				<br><br>
 				To show that you understand this, enter the following text: <br><br>
-				<img src="/disclaimer_text.png" alt="This server is not affiliated with any vendor" style="width: 50%;">
+				<span style="width: 50%;color: purple;background: black;padding: 0.25rem;" class="prevent-select">This server is not affiliated with any vendor</span>
 				<br><br>
 				<input id="disclaimer-input" style="width: 50%;" type="text" placeholder="Enter above text here">
 			</h4>
