@@ -25,6 +25,8 @@ module.exports = async (client, message) => {
 
 	let sanitizedMessage = message.content
 
+	sanitizedMessage = sanitizedMessage.replaceAll('@everyone', '').replaceAll('@here', '')
+
 	if (URLMatches) {
 		for (url of URLMatches) {
 			const newURL = trackers.test(url)
@@ -44,6 +46,17 @@ module.exports = async (client, message) => {
 					color: 8461854
 				}
 			]
+		}).then(indicatorMsg => {
+			setTimeout(() => {
+				indicatorMsg.edit({
+					embeds: [
+						{
+							description: `By <@${message.author.id}>`,
+							color: 8461854
+						}
+					]
+				})
+			}, 5*1000)
 		})
 	}
 
