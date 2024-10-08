@@ -38,26 +38,26 @@ module.exports = async (client, message) => {
 
 	if (sanitizedMessage != message.content) {
 		message.delete()
-		await message.channel.send(sanitizedMessage)
-		message.channel.send({
-			embeds: [
-				{
-					description: `The original message by <@${message.author.id}> contained one or more links with nasty trackers. I went ahead and cleaned them up 🧹`,
-					color: 8461854
-				}
-			]
-		}).then(indicatorMsg => {
-			setTimeout(() => {
-				indicatorMsg.edit({
-					embeds: [
-						{
-							description: `By <@${message.author.id}>`,
-							color: 8461854
-						}
-					]
-				})
-			}, 5*1000)
-		})
+		await message.channel.send(sanitizedMessage + `\n\n**sent by <@${message.author.id}> - cleaned and sanitized**`)
+		// message.channel.send({
+		// 	embeds: [
+		// 		{
+		// 			description: `The original message by <@${message.author.id}> contained one or more links with nasty trackers. I went ahead and cleaned them up 🧹`,
+		// 			color: 8461854
+		// 		}
+		// 	]
+		// }).then(indicatorMsg => {
+		// 	setTimeout(() => {
+		// 		indicatorMsg.edit({
+		// 			embeds: [
+		// 				{
+		// 					description: `By <@${message.author.id}>`,
+		// 					color: 8461854
+		// 				}
+		// 			]
+		// 		})
+		// 	}, 5*1000)
+		// })
 	}
 
 }
