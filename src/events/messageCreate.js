@@ -25,8 +25,6 @@ module.exports = async (client, message) => {
 
 	let sanitizedMessage = message.content
 
-	sanitizedMessage = sanitizedMessage.replaceAll('@everyone', '').replaceAll('@here', '')
-
 	if (URLMatches) {
 		for (url of URLMatches) {
 			const newURL = trackers.test(url)
@@ -37,6 +35,7 @@ module.exports = async (client, message) => {
 	}
 
 	if (sanitizedMessage != message.content) {
+		sanitizedMessage = sanitizedMessage.replaceAll('@everyone', '').replaceAll('@here', '')
 		message.delete()
 		await message.channel.send(sanitizedMessage + `\n\n**sent by <@${message.author.id}> - cleaned and sanitized**`)
 		// message.channel.send({
