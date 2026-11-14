@@ -155,12 +155,12 @@ describe('verification website', () => {
 		expect((await findToken(db(), raw))?.attempts).toBe(0);
 	});
 
-	it('burns the link after five wrong answers', async () => {
+	it('burns the link after three wrong answers', async () => {
 		const flow = setup();
 		const raw = await flow.open();
 		await flow.passDisclaimer();
 		let last: Response | undefined;
-		for (let attempt = 0; attempt < 5; attempt++) {
+		for (let attempt = 0; attempt < 3; attempt++) {
 			// oxlint-disable-next-line no-await-in-loop -- each attempt depends on the previous one
 			const altcha = await flow.loadPuzzle();
 			flow.tick(2000);
@@ -206,13 +206,13 @@ describe('verification website', () => {
 		await flow.passDisclaimer();
 		const altcha = await flow.loadPuzzle();
 		flow.tick(2000);
-		// 12 answers 30° apart: one of them is guaranteed to be within ±15° of upright
+		// 18 answers 20° apart: one of them is guaranteed to be within ±10° of upright
 		const responses = await Promise.all(
-			Array.from({ length: 12 }, (_, i) =>
-				flow.request('/verify/puzzle', { rotation: String(i * 30 - 180), altcha }),
+			Array.from({ length: 18 }, (_, i) =>
+				flow.request('/verify/puzzle', { rotation: String(i * 20 - 180), altcha }),
 			),
 		);
-		expect(responses.filter((r) => r.status === 400)).toHaveLength(11);
+		expect(responses.filter((r) => r.status === 400)).toHaveLength(17);
 		const token = await findToken(db(), raw);
 		expect((token?.attempts ?? 0) + flow.grant.mock.calls.length).toBe(1);
 	});

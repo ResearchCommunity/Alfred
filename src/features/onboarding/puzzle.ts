@@ -45,7 +45,8 @@ export function remainingTilt(startAngle: number, appliedRotation: number): numb
 	return ((((startAngle + appliedRotation) % 360) + 540) % 360) - 180;
 }
 
-export function isUpright(startAngle: number, appliedRotation: number, tolerance = 15): boolean {
+/** ±10°: a blind guess passes ~7% of the time per try, about 1 in 5 over the 3 tries */
+export function isUpright(startAngle: number, appliedRotation: number, tolerance = 10): boolean {
 	return Math.abs(remainingTilt(startAngle, appliedRotation)) <= tolerance;
 }
 

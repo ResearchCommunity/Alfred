@@ -41,7 +41,7 @@ export interface OnboardingWebDeps {
 }
 
 const COOKIE = 'alfred_verify';
-const MAX_ATTEMPTS = 5;
+const MAX_ATTEMPTS = 3;
 const MIN_SOLVE_MS = 1500;
 
 const normalize = (text: string) => text.toLowerCase().replace(/\s+/g, ' ').trim();

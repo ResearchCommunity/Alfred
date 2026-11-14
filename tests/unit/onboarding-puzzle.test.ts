@@ -17,6 +17,7 @@ describe('puzzle math', () => {
 		[90, -90, true],
 		[350, 20, true], // wraps around: tilt 10°
 		[30, -14, false], // tilt 16°
+		[30, -18, false], // tilt 12°: just outside ±10°
 		[200, 165, true], // tilt 5°
 		[180, 0, false],
 	])('isUpright(%i, %i) is %s', (start, applied, expected) => {

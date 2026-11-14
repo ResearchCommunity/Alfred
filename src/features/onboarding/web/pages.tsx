@@ -16,13 +16,13 @@ export const Layout: FC<{ title: string; step?: Step; compact?: boolean; childre
 			<meta name="referrer" content="no-referrer" />
 			<meta name="robots" content="noindex" />
 			<title>{`${title} · Research Community`}</title>
-			<link rel="icon" href="/assets/logo.png" />
+			<link rel="icon" href="/assets/favicon.png" />
 			<link rel="stylesheet" href="/assets/verify.css" />
 		</head>
 		<body>
 			<main class={compact ? 'panel compact' : 'panel'}>
 				<header class="panel-head">
-					<img class="logo" src="/assets/logo.png" alt="Research Community" width="72" height="72" />
+					<img class="logo" src="/assets/logo.webp" alt="Research Community" width="72" height="72" />
 					{step && (
 						<ol class="steps" aria-label="Progress">
 							{STEPS.map((name) => (
