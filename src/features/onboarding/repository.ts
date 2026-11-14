@@ -94,6 +94,19 @@ export async function setAltchaSignature(db: Db, hash: string, altchaSignature: 
 	await collection(db).updateOne({ _id: hash }, { $set: { altchaSignature } });
 }
 
+/**
+ * Spends the token's current ALTCHA challenge: atomically clears the signature if it
+ * matches, and returns the token as it was. Of several concurrent answers carrying the
+ * same proof-of-work, only one gets through; each further answer needs a fresh challenge.
+ */
+export async function claimAltcha(db: Db, hash: string, signature: string): Promise<VerificationToken | null> {
+	return collection(db).findOneAndUpdate(
+		{ _id: hash, state: 'disclaimer_ok', altchaSignature: signature, expiresAt: { $gt: new Date() } },
+		{ $set: { altchaSignature: null } },
+		{ returnDocument: 'before' },
+	);
+}
+
 /** Counts a wrong puzzle answer and returns the total so far. */
 export async function recordFailedAttempt(db: Db, hash: string): Promise<number> {
 	const result = await collection(db).findOneAndUpdate(

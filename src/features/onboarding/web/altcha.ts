@@ -64,14 +64,22 @@ const PayloadSchema = z.object({
 }) satisfies z.ZodType<Payload>;
 
 /** The widget submits base64(JSON({ challenge, solution })) */
-export async function verifyAltcha(payload: string, key: string, expectedSignature: string): Promise<boolean> {
-	let parsed: Payload;
+function parsePayload(payload: string): Payload | null {
 	try {
-		parsed = PayloadSchema.parse(JSON.parse(Buffer.from(payload, 'base64').toString('utf8')));
+		return PayloadSchema.parse(JSON.parse(Buffer.from(payload, 'base64').toString('utf8')));
 	} catch {
-		return false;
+		return null;
 	}
-	if (parsed.challenge.signature !== expectedSignature) return false;
+}
+
+/** Which challenge a payload claims to solve (not verified yet) */
+export function altchaSignatureOf(payload: string): string | null {
+	return parsePayload(payload)?.challenge.signature ?? null;
+}
+
+export async function verifyAltcha(payload: string, key: string, expectedSignature: string): Promise<boolean> {
+	const parsed = parsePayload(payload);
+	if (!parsed || parsed.challenge.signature !== expectedSignature) return false;
 
 	const result = await verifySolution({
 		challenge: parsed.challenge,

@@ -173,8 +173,46 @@ describe('verification website', () => {
 			flow.request('/verify/puzzle', form),
 			flow.request('/verify/puzzle', form),
 		]);
-		expect(responses.map((r) => r.status).toSorted((a, b) => a - b)).toEqual([200, 410]);
+		expect(responses.filter((r) => r.status === 200)).toHaveLength(1);
 		expect(flow.grant).toHaveBeenCalledOnce();
+	});
+
+	it('evaluates only one answer per proof-of-work, even in a burst covering every angle', async () => {
+		const flow = setup();
+		const raw = await flow.open();
+		await flow.passDisclaimer();
+		const altcha = await flow.loadPuzzle();
+		flow.tick(2000);
+		// 12 answers 30° apart: one of them is guaranteed to be within ±15° of upright
+		const responses = await Promise.all(
+			Array.from({ length: 12 }, (_, i) =>
+				flow.request('/verify/puzzle', { rotation: String(i * 30 - 180), altcha }),
+			),
+		);
+		expect(responses.filter((r) => r.status === 400)).toHaveLength(11);
+		const token = await findToken(db(), raw);
+		expect((token?.attempts ?? 0) + flow.grant.mock.calls.length).toBe(1);
+	});
+
+	it('rejects a replayed proof-of-work without counting an attempt', async () => {
+		const flow = setup();
+		const raw = await flow.open();
+		await flow.passDisclaimer();
+		const altcha = await flow.loadPuzzle();
+		flow.tick(2000);
+		const wrong = String(-(await flow.angle(raw)) + 90);
+		expect((await flow.request('/verify/puzzle', { rotation: wrong, altcha })).status).toBe(303);
+		expect((await flow.request('/verify/puzzle', { rotation: wrong, altcha })).status).toBe(400);
+		expect((await findToken(db(), raw))?.attempts).toBe(1);
+	});
+
+	it('sets a SameSite=Lax cookie, so links clicked in Discord in a browser work', async () => {
+		const flow = setup();
+		const raw = await issueToken(db(), USER);
+		const cookie = (await flow.request(`/v/${raw}`)).headers.get('set-cookie') ?? '';
+		expect(cookie).toMatch(/SameSite=Lax/i);
+		expect(cookie).toMatch(/HttpOnly/i);
+		expect(cookie).toMatch(/Path=\/verify/i);
 	});
 
 	it('lets the visitor retry when granting fails', async () => {

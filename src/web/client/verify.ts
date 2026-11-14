@@ -64,4 +64,10 @@ function setUpPuzzle(form: HTMLFormElement): void {
 		submit.textContent = state === 'verified' ? "That's upright" : 'Checking your browser…';
 	});
 	submit.textContent = 'Checking your browser…';
+
+	// A double tap must not send the answer twice: the second request would lose the race
+	// and show "expired" even though the first one just verified the member
+	form.addEventListener('submit', () => {
+		submit.disabled = true;
+	});
 }

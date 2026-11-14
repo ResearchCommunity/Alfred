@@ -14,6 +14,7 @@ FROM base AS build
 RUN --mount=type=cache,target=/root/.yarn/berry/cache yarn install --immutable
 COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
+COPY scripts ./scripts
 RUN yarn build
 
 # ---- deps: production dependencies only ----

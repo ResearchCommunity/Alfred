@@ -10,6 +10,7 @@ import type { OnboardingConfig } from '../panels.ts';
 import { IMAGES_DIR, isUpright, listPuzzleImages, randomStartAngle, renderPuzzle } from '../puzzle.ts';
 import {
 	advance,
+	claimAltcha,
 	deleteToken,
 	findToken,
 	recordFailedAttempt,
@@ -17,7 +18,13 @@ import {
 	setPuzzle,
 	type VerificationToken,
 } from '../repository.ts';
-import { type AltchaDifficulty, createAltchaChallenge, DEFAULT_DIFFICULTY, verifyAltcha } from './altcha.ts';
+import {
+	type AltchaDifficulty,
+	altchaSignatureOf,
+	createAltchaChallenge,
+	DEFAULT_DIFFICULTY,
+	verifyAltcha,
+} from './altcha.ts';
 import { CreditsPage, DisclaimerPage, MessagePage, PuzzlePage, SuccessPage } from './pages.tsx';
 
 export interface OnboardingWebDeps {
@@ -108,7 +115,10 @@ export function onboardingRoutes(deps: OnboardingWebDeps): (app: Hono) => void {
 				path: '/verify',
 				httpOnly: true,
 				secure: deps.secureCookies,
-				sameSite: 'Strict',
+				// Lax, not Strict: a link clicked in Discord's web client is a cross-site navigation, and
+				// browsers withhold Strict cookies for its whole redirect chain. Lax still keeps the
+				// cookie off cross-site POSTs, which is what protects the forms.
+				sameSite: 'Lax',
 				maxAge: Math.max(1, Math.floor((token.expiresAt.getTime() - now()) / 1000)),
 			});
 			return c.redirect('/verify', 303);
@@ -167,16 +177,21 @@ export function onboardingRoutes(deps: OnboardingWebDeps): (app: Hono) => void {
 			const rotation = Number(body.rotation);
 			const altcha = typeof body.altcha === 'string' ? body.altcha : '';
 
-			if (!token.altchaSignature || !(await verifyAltcha(altcha, deps.altchaKey, token.altchaSignature))) {
+			// Spend the proof-of-work first: one solved challenge buys one answer, so a script
+			// can't fire a burst of answers covering every angle with a single solution
+			const signature = altchaSignatureOf(altcha);
+			const claimed = signature ? await claimAltcha(db, token._id, signature) : null;
+			if (!claimed?.puzzle || !signature || !(await verifyAltcha(altcha, deps.altchaKey, signature))) {
 				return renderPuzzlePage(
 					c,
 					token,
 					'Your browser did not finish its background check. Please try again.',
 				);
 			}
+			const { puzzle } = claimed;
 
-			const tooFast = now() - token.puzzle.issuedAt.getTime() < MIN_SOLVE_MS;
-			if (tooFast || !Number.isFinite(rotation) || !isUpright(token.puzzle.angle, rotation)) {
+			const tooFast = now() - puzzle.issuedAt.getTime() < MIN_SOLVE_MS;
+			if (tooFast || !Number.isFinite(rotation) || !isUpright(puzzle.angle, rotation)) {
 				const attempts = await recordFailedAttempt(db, token._id);
 				if (attempts >= MAX_ATTEMPTS) {
 					await deleteToken(db, token._id);
