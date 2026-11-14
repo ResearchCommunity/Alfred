@@ -85,6 +85,34 @@
             },
             "additionalProperties": false,
             "description": "Self-assignable country roles (/nationality)"
+        },
+        "tickets": {
+            "type": "object",
+            "properties": {
+                "categoryId": {
+                    "type": "string",
+                    "pattern": "^\\d{17,20}$",
+                    "description": "Category the private tripsit channels are created in"
+                },
+                "tripsitterRoleId": {
+                    "type": "string",
+                    "pattern": "^\\d{17,20}$",
+                    "description": "Role that can see and gets pinged for every ticket"
+                },
+                "panelText": {
+                    "default": "Is your trip going south? Need some assistance or just someone to talk to? Our volunteer tripsitters are here for you!",
+                    "description": "Text of the panel with the \"Tripsit me!\" button (markdown supported)",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000
+                }
+            },
+            "required": [
+                "categoryId",
+                "tripsitterRoleId"
+            ],
+            "additionalProperties": false,
+            "description": "Private tripsitting channels. Leave this section out to disable tickets."
         }
     },
     "required": [

@@ -19,3 +19,7 @@ linkCleaner:
 nationality:
     # New country roles are created directly below this role (e.g. your verified role)
     anchorRoleId: '000000000000000000'
+
+tickets:
+    categoryId: '000000000000000000'
+    tripsitterRoleId: '000000000000000000'

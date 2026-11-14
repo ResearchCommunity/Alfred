@@ -39,6 +39,21 @@ const NationalitySchema = z
 	})
 	.describe('Self-assignable country roles (/nationality)');
 
+const TicketsSchema = z
+	.strictObject({
+		categoryId: Snowflake.describe('Category the private tripsit channels are created in'),
+		tripsitterRoleId: Snowflake.describe('Role that can see and gets pinged for every ticket'),
+		panelText: z
+			.string()
+			.min(1)
+			.max(4000)
+			.default(
+				'Is your trip going south? Need some assistance or just someone to talk to? Our volunteer tripsitters are here for you!',
+			)
+			.describe('Text of the panel with the "Tripsit me!" button (markdown supported)'),
+	})
+	.describe('Private tripsitting channels. Leave this section out to disable tickets.');
+
 /**
  * Guild-specific settings. Lives in `config.yaml` (see `config.example.yaml`),
  * validated at boot. Feature sections get added here as features are built.
@@ -48,6 +63,7 @@ export const ConfigSchema = z.strictObject({
 	presence: PresenceSchema.prefault({}),
 	linkCleaner: LinkCleanerSchema.prefault({}),
 	nationality: NationalitySchema.prefault({}),
+	tickets: TicketsSchema.optional(),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
