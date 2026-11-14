@@ -1,12 +1,12 @@
 {
-    "extends": "./tsconfig.json",
-    "compilerOptions": {
-        "noEmit": false,
-        "rootDir": "src",
-        "outDir": "dist",
-        "sourceMap": true,
-        "incremental": true,
-        "tsBuildInfoFile": "dist/.tsbuildinfo"
-    },
-    "include": ["src"]
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"noEmit": false,
+		"rootDir": "src",
+		"outDir": "dist",
+		"sourceMap": true,
+		"incremental": true,
+		"tsBuildInfoFile": "dist/.tsbuildinfo"
+	},
+	"include": ["src"]
 }
