@@ -31,6 +31,14 @@ const LinkCleanerSchema = z
 	})
 	.describe('Strips tracking parameters from posted links and reposts the message as its author');
 
+const NationalitySchema = z
+	.strictObject({
+		anchorRoleId: Snowflake.optional().describe(
+			'New country roles are created directly below this role. Without it they land at the bottom.',
+		),
+	})
+	.describe('Self-assignable country roles (/nationality)');
+
 /**
  * Guild-specific settings. Lives in `config.yaml` (see `config.example.yaml`),
  * validated at boot. Feature sections get added here as features are built.
@@ -39,6 +47,7 @@ export const ConfigSchema = z.strictObject({
 	guildId: Snowflake.describe('ID of the guild Alfred serves. Slash commands are registered here.'),
 	presence: PresenceSchema.prefault({}),
 	linkCleaner: LinkCleanerSchema.prefault({}),
+	nationality: NationalitySchema.prefault({}),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;

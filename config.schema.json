@@ -72,6 +72,19 @@
             },
             "additionalProperties": false,
             "description": "Strips tracking parameters from posted links and reposts the message as its author"
+        },
+        "nationality": {
+            "default": {},
+            "type": "object",
+            "properties": {
+                "anchorRoleId": {
+                    "description": "New country roles are created directly below this role. Without it they land at the bottom.",
+                    "type": "string",
+                    "pattern": "^\\d{17,20}$"
+                }
+            },
+            "additionalProperties": false,
+            "description": "Self-assignable country roles (/nationality)"
         }
     },
     "required": [

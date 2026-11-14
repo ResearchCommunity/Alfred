@@ -15,3 +15,7 @@ presence:
 linkCleaner:
     enabled: true
     ignoredChannelIds: []
+
+nationality:
+    # New country roles are created directly below this role (e.g. your verified role)
+    anchorRoleId: '000000000000000000'
