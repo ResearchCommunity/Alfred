@@ -1,6 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { InteractionContextType, MessageFlags, PermissionFlagsBits } from 'discord.js';
+import { InteractionContextType, type MessageCreateOptions, MessageFlags, PermissionFlagsBits } from 'discord.js';
+import { nationalityPanel, rulesPanel } from '../../onboarding/panels.ts';
 import { ticketPanel } from '../../tickets/tickets.ts';
 
 /**
@@ -16,7 +17,9 @@ export class PanelCommand extends Command {
 				.setDescription(this.description)
 				.setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
 				.setContexts(InteractionContextType.Guild)
-				.addSubcommand((sub) => sub.setName('tickets').setDescription('The "Tripsit me!" button')),
+				.addSubcommand((sub) => sub.setName('tickets').setDescription('The "Tripsit me!" button'))
+				.addSubcommand((sub) => sub.setName('rules').setDescription('The rules with Accept/Decline'))
+				.addSubcommand((sub) => sub.setName('nationality').setDescription('Info about /nationality')),
 		);
 	}
 
@@ -27,24 +30,30 @@ export class PanelCommand extends Command {
 			return;
 		}
 
-		const panel = interaction.options.getSubcommand();
+		const message = this.buildPanel(interaction.options.getSubcommand());
+		if (typeof message === 'string') {
+			await interaction.reply({ content: message, flags: MessageFlags.Ephemeral });
+			return;
+		}
+		await channel.send(message);
+
+		await interaction.reply({ content: 'Panel posted.', flags: MessageFlags.Ephemeral });
+	}
+
+	/** The panel's message, or why it can't be posted */
+	private buildPanel(panel: string): MessageCreateOptions | string {
+		const { tickets, onboarding, nationality } = this.container.config;
 		switch (panel) {
-			case 'tickets': {
-				const config = this.container.config.tickets;
-				if (!config) {
-					await interaction.reply({
-						content: 'Set up `tickets` in config.yaml first.',
-						flags: MessageFlags.Ephemeral,
-					});
-					return;
-				}
-				await channel.send(ticketPanel(config));
-				break;
-			}
+			case 'tickets':
+				return tickets ? ticketPanel(tickets) : 'Set up `tickets` in config.yaml first.';
+			case 'rules':
+				return onboarding ? rulesPanel(onboarding) : 'Set up `onboarding` in config.yaml first.';
+			case 'nationality':
+				return nationality.panelText
+					? nationalityPanel(nationality.panelText)
+					: 'Set `nationality.panelText` in config.yaml first.';
 			default:
 				throw new Error(`Unknown panel: ${panel}`);
 		}
-
-		await interaction.reply({ content: 'Panel posted.', flags: MessageFlags.Ephemeral });
 	}
 }

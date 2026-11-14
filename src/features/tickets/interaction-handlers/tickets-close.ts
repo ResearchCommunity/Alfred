@@ -7,7 +7,10 @@ import { closeConfirmation, isTicketChannel, TicketButton } from '../tickets.ts'
 @ApplyOptions<InteractionHandler.Options>({ interactionHandlerType: InteractionHandlerTypes.Button })
 export class TicketsCloseHandler extends InteractionHandler {
 	public override parse(interaction: ButtonInteraction) {
-		return interaction.customId === TicketButton.Close ? this.some() : this.none();
+		// 'ticket-delete' is the old bot's ID, so its existing panels and tickets keep working
+		return interaction.customId === TicketButton.Close || interaction.customId === 'ticket-delete'
+			? this.some()
+			: this.none();
 	}
 
 	public override async run(interaction: ButtonInteraction): Promise<void> {

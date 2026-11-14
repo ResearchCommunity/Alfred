@@ -6,7 +6,10 @@ import { openTicket, TicketButton } from '../tickets.ts';
 @ApplyOptions<InteractionHandler.Options>({ interactionHandlerType: InteractionHandlerTypes.Button })
 export class TicketsOpenHandler extends InteractionHandler {
 	public override parse(interaction: ButtonInteraction) {
-		return interaction.customId === TicketButton.Open ? this.some() : this.none();
+		// 'ticket-create' is the old bot's ID, so its existing panels and tickets keep working
+		return interaction.customId === TicketButton.Open || interaction.customId === 'ticket-create'
+			? this.some()
+			: this.none();
 	}
 
 	public override async run(interaction: ButtonInteraction): Promise<void> {
