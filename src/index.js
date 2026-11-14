@@ -27,8 +27,8 @@ intents.add(
     IntentsBitField.Flags.Guilds,
     IntentsBitField.Flags.GuildVoiceStates,
     IntentsBitField.Flags.GuildMembers,
-	IntentsBitField.Flags.GuildMessages,
-	IntentsBitField.Flags.MessageContent
+    IntentsBitField.Flags.GuildMessages,
+    IntentsBitField.Flags.MessageContent
 )
 
 const client = new Client({
