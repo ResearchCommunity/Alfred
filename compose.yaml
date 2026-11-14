@@ -1,0 +1,45 @@
+# Production stack. On the server:
+#   cp .env.example .env && cp config.example.yaml config.yaml   # then fill both in
+#   git pull && docker compose up -d --build
+name: alfred
+
+services:
+    alfred:
+        build: .
+        restart: unless-stopped
+        env_file: .env
+        environment:
+            # Container-internal values; these override anything from .env
+            DATABASE_URL: mongodb://${DB_USERNAME:?set DB_USERNAME in .env}:${DB_PASSWORD:?set DB_PASSWORD in .env}@documentdb:10260/
+            HTTP_PORT: 3050
+        volumes:
+            - ./config.yaml:/app/config.yaml:ro
+        ports:
+            # Loopback only — Caddy on the host proxies the public domain to this port
+            - 127.0.0.1:${HTTP_PORT:-3050}:3050
+        networks: [default, database]
+        depends_on:
+            documentdb:
+                condition: service_healthy
+
+    documentdb:
+        # Pinned: Postgres 18 + DocumentDB 1.2 + Mongo-wire gateway in one container.
+        # Upstream labels this image "dev/eval"; swap for official production images once they exist.
+        image: ghcr.io/documentdb/documentdb/documentdb-local:pg18-1.2.0
+        restart: unless-stopped
+        environment:
+            USERNAME: ${DB_USERNAME}
+            PASSWORD: ${DB_PASSWORD}
+            DO_NOT_TRACK: 1
+        volumes:
+            - documentdb-data:/data
+        # No ports published, and the network is internal: the database has no route
+        # to the outside world at all (which also makes the telemetry opt-out airtight).
+        networks: [database]
+
+networks:
+    database:
+        internal: true
+
+volumes:
+    documentdb-data:

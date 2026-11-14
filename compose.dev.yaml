@@ -1,0 +1,18 @@
+# Development dependencies only — the bot itself runs on the host (`yarn dev`).
+#   yarn db:up / yarn db:down
+name: alfred-dev
+
+services:
+    documentdb:
+        image: ghcr.io/documentdb/documentdb/documentdb-local:pg18-1.2.0
+        environment:
+            USERNAME: alfred
+            PASSWORD: alfred
+            DO_NOT_TRACK: 1
+        ports:
+            - 127.0.0.1:10260:10260
+        volumes:
+            - documentdb-data:/data
+
+volumes:
+    documentdb-data:

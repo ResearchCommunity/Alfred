@@ -1,7 +1,16 @@
-config.js
-node_modules
-.vscode
-*.mp3
-*.webm
-music/*.json
-music/touched
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Yarn Berry (Corepack provides the binary; no PnP, no zero-installs)
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+
+# Local secrets & deployment-specific settings
+.env
+config.yaml
+
+# Old bot checkout (reference only)
+.old/

@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=./config.schema.json
+#
+# Copy to config.yaml and fill in. Validated on startup; editors with the YAML
+# extension get autocomplete from config.schema.json (regenerate: `yarn config:schema`).
+
+# Right-click your server → Copy Server ID (requires Developer Mode)
+guildId: '000000000000000000'
+
+presence:
+    status: online
+    activity:
+        type: watching
+        name: over the community

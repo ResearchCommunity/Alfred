@@ -1,0 +1,17 @@
+{
+    "$schema": "./node_modules/oxfmt/configuration_schema.json",
+    "printWidth": 120,
+    "tabWidth": 4,
+    "useTabs": true,
+    "semi": true,
+    "singleQuote": true,
+    "trailingComma": "all",
+    "ignorePatterns": [
+        "dist",
+        ".old",
+        "node_modules",
+        ".yarn",
+        "yarn.lock",
+        "config.schema.json"
+    ]
+}
