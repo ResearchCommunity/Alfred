@@ -3,7 +3,12 @@ import type { Child, FC } from 'hono/jsx';
 const STEPS = ['Not a shop', 'Puzzle', 'Done'] as const;
 type Step = (typeof STEPS)[number];
 
-export const Layout: FC<{ title: string; step?: Step; children: Child }> = ({ title, step, children }) => (
+export const Layout: FC<{ title: string; step?: Step; compact?: boolean; children: Child }> = ({
+	title,
+	step,
+	compact = false,
+	children,
+}) => (
 	<html lang="en">
 		<head>
 			<meta charset="utf-8" />
@@ -15,21 +20,25 @@ export const Layout: FC<{ title: string; step?: Step; children: Child }> = ({ ti
 			<link rel="stylesheet" href="/assets/verify.css" />
 		</head>
 		<body>
-			<main class="panel">
-				<img class="logo" src="/assets/logo.png" alt="Research Community" width="72" height="72" />
-				{step && (
-					<ol class="steps" aria-label="Progress">
-						{STEPS.map((name) => (
-							<li class={name === step ? 'active' : ''} aria-current={name === step ? 'step' : undefined}>
-								{name}
-							</li>
-						))}
-					</ol>
-				)}
+			<main class={compact ? 'panel compact' : 'panel'}>
+				<header class="panel-head">
+					<img class="logo" src="/assets/logo.png" alt="Research Community" width="72" height="72" />
+					{step && (
+						<ol class="steps" aria-label="Progress">
+							{STEPS.map((name) => (
+								<li
+									class={name === step ? 'active' : ''}
+									aria-current={name === step ? 'step' : undefined}
+								>
+									{name}
+								</li>
+							))}
+						</ol>
+					)}
+				</header>
 				{children}
 			</main>
 			<footer>
-				<a href="/verify/credits">Image credits</a> ·{' '}
 				<a href="https://github.com/ResearchCommunity/Alfred" rel="noreferrer">
 					Source code
 				</a>
@@ -56,41 +65,61 @@ export const DisclaimerPage: FC<{ sentence: string; error?: string }> = ({ sente
 	</Layout>
 );
 
-export const PuzzlePage: FC<{ altchaChallenge: string; attemptsLeft: number; error?: string }> = ({
-	altchaChallenge,
-	attemptsLeft,
-	error,
-}) => (
-	<Layout title="Set the experiment upright" step="Puzzle">
-		<h1>Set the experiment upright</h1>
-		<p>Turn the picture until it stands the right way up.</p>
+/** What a puzzle picture showed. Only ever shown after it was answered: it would be a hint before. */
+export const PuzzlePage: FC<{
+	/** The turned picture, inline (data: URL), so it arrives with the page */
+	image: string;
+	altchaChallenge: string;
+	attemptsLeft: number;
+	/** What the picture shows, read while turning it */
+	caption?: string | undefined;
+	/** After a wrong answer, the page says so above the new picture */
+	missed: boolean;
+	error?: string;
+}> = ({ image, altchaChallenge, attemptsLeft, caption, missed, error }) => (
+	<Layout title="Set history straight" step="Puzzle" compact>
+		<h1>Set history straight</h1>
+		{missed ? (
+			<p class="intro error">Not quite upright. Here's a new picture.</p>
+		) : (
+			<p class="intro">Turn the picture until it stands the right way up.</p>
+		)}
 		<form method="post" action="/verify/puzzle" class="puzzle" id="puzzle">
-			<div class="puzzle-image">
-				<img
-					src="/verify/puzzle.webp"
-					alt="A lab photo, turned at a random angle"
-					width="320"
-					height="320"
-					draggable={false}
-				/>
+			<div class="puzzle-turn">
+				<div class="puzzle-image">
+					<img
+						src={image}
+						alt="A picture, turned at a random angle"
+						width="320"
+						height="320"
+						draggable={false}
+					/>
+				</div>
+				<label for="rotation" class="visually-hidden">
+					Rotation in degrees (arrow keys turn by 5°, with Shift by 15°)
+				</label>
+				<input id="rotation" name="rotation" type="range" min="-180" max="180" step="1" value="0" />
 			</div>
-			<label for="rotation" class="visually-hidden">
-				Rotation in degrees (arrow keys turn by 5°, with Shift by 15°)
-			</label>
-			<input id="rotation" name="rotation" type="range" min="-180" max="180" step="1" value="0" />
-			<altcha-widget challenge={altchaChallenge} display="invisible" auto="onload" name="altcha" />
-			{error && <p class="error">{error}</p>}
-			<button type="submit" disabled>
-				That's upright
-			</button>
-			<p class="hint">
-				{attemptsLeft} {attemptsLeft === 1 ? 'try' : 'tries'} left · Can't do this one? Message a moderator.
-			</p>
-			<noscript>
-				<p class="error">
-					This step needs JavaScript. Only this site needs to be allowed, nothing else is loaded.
+			<div class="puzzle-side">
+				{caption && (
+					<aside class="about-picture" aria-label="What the picture shows">
+						<p>{caption}</p>
+					</aside>
+				)}
+				<altcha-widget challenge={altchaChallenge} display="invisible" auto="onload" name="altcha" />
+				{error && <p class="error">{error}</p>}
+				<button type="submit" disabled>
+					That's upright
+				</button>
+				<p class="hint">
+					{attemptsLeft} {attemptsLeft === 1 ? 'try' : 'tries'} left · Stuck? Message a moderator.
 				</p>
-			</noscript>
+				<noscript>
+					<p class="error">
+						This step needs JavaScript. Only this site needs to be allowed, nothing else is loaded.
+					</p>
+				</noscript>
+			</div>
 		</form>
 		<script type="module" src="/assets/verify.js" />
 	</Layout>
@@ -107,25 +136,6 @@ export const MessagePage: FC<{ title: string; body: string }> = ({ title, body }
 	<Layout title={title}>
 		<h1>{title}</h1>
 		<p>{body}</p>
-	</Layout>
-);
-
-export const CreditsPage: FC<{ credits: Array<{ file: string; source: string; author: string; license: string }> }> = ({
-	credits,
-}) => (
-	<Layout title="Image credits">
-		<h1>Image credits</h1>
-		<p>The puzzle photos come from Wikimedia Commons. Thank you to their authors!</p>
-		<ul class="credits">
-			{credits.map((credit) => (
-				<li>
-					<a href={credit.source} rel="noreferrer">
-						{credit.file}
-					</a>{' '}
-					by {credit.author} ({credit.license})
-				</li>
-			))}
-		</ul>
 	</Layout>
 );
 

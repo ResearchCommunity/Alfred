@@ -89,6 +89,20 @@ export async function setPuzzle(db: Db, hash: string, puzzle: PuzzleState, altch
 	);
 }
 
+/** Gives the token its first puzzle, unless it already has one. Returns whether it was set. */
+export async function setPuzzleIfMissing(db: Db, hash: string, puzzle: PuzzleState): Promise<boolean> {
+	const result = await collection(db).updateOne(
+		{ _id: hash, puzzle: null },
+		{ $set: { puzzle: PuzzleStateSchema.parse(puzzle) } },
+	);
+	return result.modifiedCount === 1;
+}
+
+/** The minimum solve time counts from when the puzzle is shown, not from when it was prepared */
+export async function startPuzzleClock(db: Db, hash: string, shownAt: Date): Promise<void> {
+	await collection(db).updateOne({ _id: hash, puzzle: { $ne: null } }, { $set: { 'puzzle.issuedAt': shownAt } });
+}
+
 /** Each puzzle page render gets a fresh ALTCHA challenge; only the latest one counts */
 export async function setAltchaSignature(db: Db, hash: string, altchaSignature: string): Promise<void> {
 	await collection(db).updateOne({ _id: hash }, { $set: { altchaSignature } });

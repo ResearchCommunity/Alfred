@@ -1,11 +1,35 @@
 import { randomBytes, randomInt } from 'node:crypto';
-import { readdir } from 'node:fs/promises';
-import { basename } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { readdir, readFile } from 'node:fs/promises';
+import { basename, resolve, sep } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import sharp from 'sharp';
+import { z } from 'zod';
 
-/** Same relative depth from src/ and dist/, so this resolves in tests and in production */
-export const IMAGES_DIR = new URL('../../../assets/verification/images/', import.meta.url);
+/**
+ * The lab photos committed to the repo. Same relative depth from src/ and dist/, so this
+ * resolves in tests and in production. Used when no local pool is set up.
+ */
+export const BUNDLED_IMAGES_DIR = new URL('../../../assets/verification/images/', import.meta.url);
+
+/** Optional per-image details, kept as `images.json` next to the images */
+export const IMAGE_MANIFEST = 'images.json';
+
+export const ImageInfoSchema = z.object({
+	file: z.string().min(1),
+	/** Shown to the visitor after they answered, never during the puzzle */
+	caption: z.string().min(1).optional(),
+	source: z.url({ protocol: /^https?$/ }).optional(),
+	author: z.string().min(1).optional(),
+	license: z.string().min(1).optional(),
+});
+
+export type ImageInfo = z.infer<typeof ImageInfoSchema>;
+
+export interface ImagePool {
+	dir: URL;
+	files: string[];
+	info: ReadonlyMap<string, ImageInfo>;
+}
 
 const IMAGE_EXTENSIONS = /\.(jpe?g|png|webp)$/i;
 const OUTPUT_SIZE = 320;
@@ -25,8 +49,39 @@ export function isUpright(startAngle: number, appliedRotation: number, tolerance
 	return Math.abs(remainingTilt(startAngle, appliedRotation)) <= tolerance;
 }
 
-export async function listPuzzleImages(dir: URL = IMAGES_DIR): Promise<string[]> {
-	return (await readdir(dir)).filter((file) => IMAGE_EXTENSIONS.test(file));
+export async function listPuzzleImages(dir: URL = BUNDLED_IMAGES_DIR): Promise<string[]> {
+	return (await readdir(dir)).filter((file) => IMAGE_EXTENSIONS.test(file)).toSorted();
+}
+
+const isMissing = (error: unknown) => error instanceof Error && 'code' in error && error.code === 'ENOENT';
+
+/** Reads a pool directory. The manifest is optional; images without an entry just have no caption. */
+export async function loadImagePool(dir: URL): Promise<ImagePool> {
+	const files = await listPuzzleImages(dir);
+	let entries: ImageInfo[] = [];
+	try {
+		const text = await readFile(new URL(IMAGE_MANIFEST, dir), 'utf8');
+		entries = z.array(ImageInfoSchema).parse(JSON.parse(text));
+	} catch (error) {
+		if (!isMissing(error)) throw new Error(`Invalid ${IMAGE_MANIFEST} in ${fileURLToPath(dir)}`, { cause: error });
+	}
+	return { dir, files, info: new Map(entries.map((entry) => [entry.file, entry])) };
+}
+
+/**
+ * The local pool at `path` (kept out of git) if it holds any images, else the bundled
+ * lab photos. A missing or empty folder is not an error: compose creates an empty one
+ * for a bind mount whose source doesn't exist.
+ */
+export async function resolveImagePool(path: string): Promise<{ pool: ImagePool; bundled: boolean }> {
+	const dir = pathToFileURL(resolve(path) + sep);
+	try {
+		const local = await loadImagePool(dir);
+		if (local.files.length > 0) return { pool: local, bundled: false };
+	} catch (error) {
+		if (!isMissing(error)) throw error;
+	}
+	return { pool: await loadImagePool(BUNDLED_IMAGES_DIR), bundled: true };
 }
 
 /**
@@ -34,7 +89,7 @@ export async function listPuzzleImages(dir: URL = IMAGES_DIR): Promise<string[]>
  * cropped to a circle (square corners would give the angle away), slightly
  * jittered so the same source never yields byte-identical output, WebP, no metadata.
  */
-export async function renderPuzzle(imageId: string, angle: number, dir: URL = IMAGES_DIR): Promise<Buffer> {
+export async function renderPuzzle(imageId: string, angle: number, dir: URL = BUNDLED_IMAGES_DIR): Promise<Buffer> {
 	const path = fileURLToPath(new URL(basename(imageId), dir));
 
 	// Rotating grows the canvas with transparent corners. The circle inscribed in the

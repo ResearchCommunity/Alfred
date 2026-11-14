@@ -1,13 +1,11 @@
-import { readFile } from 'node:fs/promises';
 import { randomInt } from 'node:crypto';
 import { container } from '@sapphire/framework';
 import { type Context, Hono } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import type { Db } from 'mongodb';
-import { z } from 'zod';
 import type { GrantResult } from '../grant.ts';
 import type { OnboardingConfig } from '../panels.ts';
-import { IMAGES_DIR, isUpright, listPuzzleImages, randomStartAngle, renderPuzzle } from '../puzzle.ts';
+import { type ImagePool, isUpright, randomStartAngle, renderPuzzle } from '../puzzle.ts';
 import {
 	advance,
 	claimAltcha,
@@ -16,6 +14,10 @@ import {
 	recordFailedAttempt,
 	setAltchaSignature,
 	setPuzzle,
+	setPuzzleIfMissing,
+	startPuzzleClock,
+	TOKEN_TTL_MS,
+	type PuzzleState,
 	type VerificationToken,
 } from '../repository.ts';
 import {
@@ -25,7 +27,7 @@ import {
 	DEFAULT_DIFFICULTY,
 	verifyAltcha,
 } from './altcha.ts';
-import { CreditsPage, DisclaimerPage, MessagePage, PuzzlePage, SuccessPage } from './pages.tsx';
+import { DisclaimerPage, MessagePage, PuzzlePage, SuccessPage } from './pages.tsx';
 
 export interface OnboardingWebDeps {
 	db: Db;
@@ -33,13 +35,10 @@ export interface OnboardingWebDeps {
 	altchaKey: string;
 	secureCookies: boolean;
 	grant: (userId: string) => Promise<GrantResult>;
+	images: ImagePool;
 	now?: () => number;
 	altchaDifficulty?: AltchaDifficulty;
 }
-
-const CreditsSchema = z.array(
-	z.object({ file: z.string(), source: z.string(), author: z.string(), license: z.string() }),
-);
 
 const COOKIE = 'alfred_verify';
 const MAX_ATTEMPTS = 5;
@@ -58,34 +57,79 @@ const expired = (c: Context) =>
 	);
 
 export function onboardingRoutes(deps: OnboardingWebDeps): (app: Hono) => void {
-	const { db, config } = deps;
+	const { db, config, images } = deps;
 	const now = deps.now ?? Date.now;
-	let images: Promise<string[]> | undefined;
-	let credits: Promise<z.infer<typeof CreditsSchema>> | undefined;
 
 	async function currentToken(c: Context): Promise<VerificationToken | null> {
 		const raw = getCookie(c, COOKIE);
 		return raw ? findToken(db, raw) : null;
 	}
 
-	async function newPuzzle(hash: string): Promise<void> {
-		images ??= listPuzzleImages();
-		const pool = await images;
-		const imageId = pool[randomInt(pool.length)];
-		if (!imageId) throw new Error('The puzzle image pool is empty');
-		await setPuzzle(db, hash, { imageId, angle: randomStartAngle(), issuedAt: new Date(now()) });
+	/**
+	 * Turned puzzle pictures rendered ahead of time, by token hash: while the visitor is still
+	 * typing the disclaimer sentence, and right after a wrong answer. The puzzle page then
+	 * arrives with its picture inline instead of waiting on a render and a second request.
+	 */
+	const prepared = new Map<string, { imageId: string; angle: number; image: Promise<Buffer> }>();
+
+	function prepare(hash: string, puzzle: PuzzleState): void {
+		const entry = { ...puzzle, image: renderPuzzle(puzzle.imageId, puzzle.angle, images.dir) };
+		// A failed render surfaces when the page awaits it (or the page renders again)
+		entry.image.catch(() => {});
+		prepared.set(hash, entry);
+		// Abandoned links: forget the picture once the token would have expired anyway
+		setTimeout(() => {
+			if (prepared.get(hash) === entry) prepared.delete(hash);
+		}, TOKEN_TTL_MS).unref();
 	}
 
-	async function renderPuzzlePage(c: Context, token: VerificationToken, error?: string) {
-		const { challenge, signature } = await createAltchaChallenge(
-			deps.altchaKey,
-			deps.altchaDifficulty ?? DEFAULT_DIFFICULTY,
+	/** The prepared picture for this puzzle if there is one, else a fresh render */
+	function takePuzzleImage(hash: string, puzzle: PuzzleState): Promise<Buffer> {
+		const entry = prepared.get(hash);
+		prepared.delete(hash);
+		return entry?.imageId === puzzle.imageId && entry.angle === puzzle.angle
+			? entry.image
+			: renderPuzzle(puzzle.imageId, puzzle.angle, images.dir);
+	}
+
+	function randomPuzzle(): PuzzleState {
+		const imageId = images.files[randomInt(images.files.length)];
+		if (!imageId) throw new Error('The puzzle image pool is empty');
+		return { imageId, angle: randomStartAngle(), issuedAt: new Date(now()) };
+	}
+
+	async function newPuzzle(hash: string): Promise<PuzzleState> {
+		const puzzle = randomPuzzle();
+		await setPuzzle(db, hash, puzzle);
+		prepare(hash, puzzle);
+		return puzzle;
+	}
+
+	/** Picks and renders the first puzzle in the background, so it's ready when the disclaimer is done */
+	function preparePuzzleEarly(hash: string): void {
+		const puzzle = randomPuzzle();
+		setPuzzleIfMissing(db, hash, puzzle).then(
+			(set) => set && prepare(hash, puzzle),
+			(error: unknown) => container.logger.warn('Could not prepare a puzzle early', error),
 		);
-		await setAltchaSignature(db, token._id, signature);
+	}
+
+	async function renderPuzzlePage(c: Context, token: VerificationToken & { puzzle: PuzzleState }, error?: string) {
+		const [{ challenge, signature }, image] = await Promise.all([
+			createAltchaChallenge(deps.altchaKey, deps.altchaDifficulty ?? DEFAULT_DIFFICULTY),
+			takePuzzleImage(token._id, token.puzzle),
+		]);
+		await Promise.all([
+			setAltchaSignature(db, token._id, signature),
+			startPuzzleClock(db, token._id, new Date(now())),
+		]);
 		return c.html(
 			<PuzzlePage
+				image={`data:image/webp;base64,${image.toString('base64')}`}
 				altchaChallenge={JSON.stringify(challenge)}
 				attemptsLeft={MAX_ATTEMPTS - token.attempts}
+				caption={images.info.get(token.puzzle.imageId)?.caption}
+				missed={token.attempts > 0}
 				{...(error && { error })}
 			/>,
 			error ? 400 : 200,
@@ -128,7 +172,10 @@ export function onboardingRoutes(deps: OnboardingWebDeps): (app: Hono) => void {
 			const token = await currentToken(c);
 			if (!token) return expired(c);
 
-			if (token.state === 'issued') return c.html(<DisclaimerPage sentence={config.disclaimerSentence} />);
+			if (token.state === 'issued') {
+				if (!token.puzzle) preparePuzzleEarly(token._id);
+				return c.html(<DisclaimerPage sentence={config.disclaimerSentence} />);
+			}
 			if (token.state === 'granting') {
 				return message(
 					c,
@@ -137,8 +184,8 @@ export function onboardingRoutes(deps: OnboardingWebDeps): (app: Hono) => void {
 					'Your verification is being processed. Refresh in a few seconds.',
 				);
 			}
-			if (!token.puzzle) await newPuzzle(token._id);
-			return renderPuzzlePage(c, token);
+			// Render from the fresh puzzle, so the first picture's caption shows too
+			return renderPuzzlePage(c, { ...token, puzzle: token.puzzle ?? (await newPuzzle(token._id)) });
 		});
 
 		verify.post('/verify/disclaimer', async (c) => {
@@ -161,14 +208,6 @@ export function onboardingRoutes(deps: OnboardingWebDeps): (app: Hono) => void {
 			return c.redirect('/verify', 303);
 		});
 
-		verify.get('/verify/puzzle.webp', async (c) => {
-			const token = await currentToken(c);
-			if (!token?.puzzle || token.state !== 'disclaimer_ok') return c.notFound();
-
-			const image = await renderPuzzle(token.puzzle.imageId, token.puzzle.angle);
-			return c.body(new Uint8Array(image), 200, { 'Content-Type': 'image/webp', 'Cache-Control': 'no-store' });
-		});
-
 		verify.post('/verify/puzzle', async (c) => {
 			const token = await currentToken(c);
 			if (!token?.puzzle || token.state !== 'disclaimer_ok') return expired(c);
@@ -184,7 +223,7 @@ export function onboardingRoutes(deps: OnboardingWebDeps): (app: Hono) => void {
 			if (!claimed?.puzzle || !signature || !(await verifyAltcha(altcha, deps.altchaKey, signature))) {
 				return renderPuzzlePage(
 					c,
-					token,
+					{ ...token, puzzle: token.puzzle },
 					'Your browser did not finish its background check. Please try again.',
 				);
 			}
@@ -225,13 +264,6 @@ export function onboardingRoutes(deps: OnboardingWebDeps): (app: Hono) => void {
 				);
 			}
 			return c.html(<SuccessPage />);
-		});
-
-		verify.get('/verify/credits', async (c) => {
-			credits ??= readFile(new URL('../attributions.json', IMAGES_DIR), 'utf8').then((text) =>
-				CreditsSchema.parse(JSON.parse(text)),
-			);
-			return c.html(<CreditsPage credits={await credits} />);
 		});
 
 		// Links from the old bot

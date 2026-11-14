@@ -14,6 +14,8 @@ services:
             HTTP_PORT: 3050
         volumes:
             - ./config.yaml:/app/config.yaml:ro
+            # Puzzle images, not in git. Without any, the bundled lab photos are used.
+            - ./puzzle-images:/app/puzzle-images:ro
         ports:
             # Loopback only — Caddy on the host proxies the public domain to this port
             - 127.0.0.1:${HTTP_PORT:-3050}:3050

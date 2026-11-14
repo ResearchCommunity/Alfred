@@ -30,7 +30,12 @@ describe('config', () => {
 				verifiedRoleId: '123456789012345678',
 				welcomeChannelId: '123456789012345678',
 				publicUrl: 'https://verify.example.org/',
-				rulesContent: 'Be nice',
+				rules: {
+					title: 'Rules',
+					intro: 'Hi',
+					headline: { name: 'No sourcing', text: 'Never' },
+					list: [{ name: 'Be nice', text: 'Always' }],
+				},
 			},
 		};
 
@@ -42,6 +47,11 @@ describe('config', () => {
 
 		it('strips the trailing slash from publicUrl', () => {
 			expect(parseConfig(base).onboarding?.publicUrl).toBe('https://verify.example.org');
+		});
+
+		it('rejects rules longer than a Discord message', () => {
+			const rules = { ...base.onboarding.rules, list: [{ name: 'Long', text: 'x'.repeat(4001) }] };
+			expect(() => parseConfig({ ...base, onboarding: { ...base.onboarding, rules } })).toThrow(/4000/);
 		});
 
 		it('rejects a publicUrl that is not a URL', () => {

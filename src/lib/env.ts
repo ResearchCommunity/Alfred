@@ -20,6 +20,10 @@ export const EnvSchema = z.object({
 
 	// Signs ALTCHA proof-of-work challenges. Required when `onboarding` is configured.
 	ALTCHA_HMAC_KEY: z.string().min(32).optional(),
+
+	// Folder of verification puzzle images (kept out of git). Falls back to the bundled lab
+	// photos when it's missing or empty. Relative paths resolve from the working directory.
+	PUZZLE_IMAGES_DIR: z.string().min(1).default('puzzle-images'),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

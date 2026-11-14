@@ -138,11 +138,91 @@
                     "type": "string",
                     "format": "uri"
                 },
-                "rulesContent": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 4000,
-                    "description": "Rules shown on the rules panel (markdown)"
+                "rules": {
+                    "type": "object",
+                    "properties": {
+                        "author": {
+                            "description": "Small print above the title, e.g. the server name",
+                            "type": "string",
+                            "minLength": 1
+                        },
+                        "title": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Heading of the rules panel"
+                        },
+                        "intro": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Paragraph under the title (markdown)"
+                        },
+                        "thumbnail": {
+                            "description": "Picture in the top right corner: an http(s) URL, or a file path (relative to the working directory) that is uploaded with the panel",
+                            "type": "string",
+                            "minLength": 1
+                        },
+                        "headline": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "text": {
+                                    "type": "string",
+                                    "minLength": 1
+                                }
+                            },
+                            "required": [
+                                "name",
+                                "text"
+                            ],
+                            "additionalProperties": false,
+                            "description": "The one rule that must not be missed, set apart from the rest"
+                        },
+                        "list": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "minLength": 1
+                                    },
+                                    "text": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "markdown"
+                                    },
+                                    "note": {
+                                        "description": "Small print under the rule, e.g. an example",
+                                        "type": "string",
+                                        "minLength": 1
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "text"
+                                ],
+                                "additionalProperties": false
+                            },
+                            "description": "The other rules, in order"
+                        },
+                        "closing": {
+                            "description": "Small print at the end, before the buttons",
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    },
+                    "required": [
+                        "title",
+                        "intro",
+                        "headline",
+                        "list"
+                    ],
+                    "additionalProperties": false,
+                    "description": "The rules panel members accept before verifying"
                 },
                 "disclaimerSentence": {
                     "default": "This server is not affiliated with any vendor",
@@ -183,7 +263,7 @@
                 "verifiedRoleId",
                 "welcomeChannelId",
                 "publicUrl",
-                "rulesContent"
+                "rules"
             ],
             "additionalProperties": false,
             "description": "Rules panel and verification website. Leave this section out to disable onboarding."

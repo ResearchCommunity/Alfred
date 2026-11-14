@@ -10,4 +10,5 @@ tests
 .env
 .env.*
 config.yaml
+puzzle-images
 *.md

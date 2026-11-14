@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { parse as parseYaml } from 'yaml';
 import { z } from 'zod';
+import { MAX_RULES_LENGTH, rulesLength } from '../features/onboarding/rules-text.ts';
 
 // NOTE: this module is also imported by scripts/generate-config-schema.ts, which runs
 // through Node's native type stripping — keep it free of non-erasable TS syntax
@@ -74,6 +75,42 @@ const DEFAULT_WELCOME_MESSAGES = [
 	'Finally, after all these years, %user% has joined!',
 ];
 
+const Line = z.string().trim().min(1);
+
+const RulesSchema = z
+	.strictObject({
+		author: Line.optional().describe('Small print above the title, e.g. the server name'),
+		title: Line.describe('Heading of the rules panel'),
+		intro: Line.describe('Paragraph under the title (markdown)'),
+		thumbnail: Line.optional().describe(
+			'Picture in the top right corner: an http(s) URL, or a file path (relative to the working directory) that is uploaded with the panel',
+		),
+		headline: z
+			.strictObject({ name: Line, text: Line })
+			.describe('The one rule that must not be missed, set apart from the rest'),
+		list: z
+			.array(
+				z.strictObject({
+					name: Line,
+					text: Line.describe('markdown'),
+					note: Line.optional().describe('Small print under the rule, e.g. an example'),
+				}),
+			)
+			.min(1)
+			.describe('The other rules, in order'),
+		closing: Line.optional().describe('Small print at the end, before the buttons'),
+	})
+	.superRefine((rules, context) => {
+		const length = rulesLength(rules);
+		if (length > MAX_RULES_LENGTH) {
+			context.addIssue({
+				code: 'custom',
+				message: `Rules are ${length} characters; a Discord message holds at most ${MAX_RULES_LENGTH}`,
+			});
+		}
+	})
+	.describe('The rules panel members accept before verifying');
+
 const OnboardingSchema = z
 	.strictObject({
 		verifiedRoleId: Snowflake.describe('Role members get after passing verification'),
@@ -82,7 +119,7 @@ const OnboardingSchema = z
 			.url({ protocol: /^https?$/ })
 			.transform((url) => url.replace(/\/+$/, ''))
 			.describe('Public base URL of the verification site, e.g. https://verify.research-community.org'),
-		rulesContent: z.string().min(1).max(4000).describe('Rules shown on the rules panel (markdown)'),
+		rules: RulesSchema,
 		disclaimerSentence: z
 			.string()
 			.min(1)

@@ -3,12 +3,25 @@ import { deriveKey } from 'altcha-lib/algorithms/pbkdf2';
 import { Hono } from 'hono';
 import { describe, expect, it, vi } from 'vitest';
 import type { GrantResult } from '../../src/features/onboarding/grant.ts';
+import { BUNDLED_IMAGES_DIR, loadImagePool } from '../../src/features/onboarding/puzzle.ts';
 import { findToken, issueToken } from '../../src/features/onboarding/repository.ts';
 import { onboardingRoutes } from '../../src/features/onboarding/web/routes.tsx';
 import { useTestDatabase } from './helpers.ts';
 
 const USER = '600000000000000006';
 const SENTENCE = 'This server is not affiliated with any vendor';
+
+// The bundled images, each with a caption that names it
+const bundled = await loadImagePool(BUNDLED_IMAGES_DIR);
+const images = {
+	...bundled,
+	info: new Map(
+		bundled.files.map((file) => [
+			file,
+			{ file, caption: `Caption of ${file}`, source: `https://example.org/${file}` },
+		]),
+	),
+};
 
 describe('verification website', () => {
 	const db = useTestDatabase();
@@ -23,7 +36,12 @@ describe('verification website', () => {
 				verifiedRoleId: '1'.repeat(18),
 				welcomeChannelId: '1'.repeat(18),
 				publicUrl: 'http://localhost:3050',
-				rulesContent: 'rules',
+				rules: {
+					title: 'Rules',
+					intro: 'Hi',
+					headline: { name: 'No sourcing', text: 'Never' },
+					list: [{ name: 'Be nice', text: 'Always' }],
+				},
 				disclaimerSentence: SENTENCE,
 				welcomeMessages: ['%user%'],
 			},
@@ -32,6 +50,7 @@ describe('verification website', () => {
 			grant: grantSpy,
 			now: () => clock,
 			altchaDifficulty: { cost: 1, maxCounter: 4 },
+			images,
 		})(app);
 
 		let cookie = '';
@@ -64,6 +83,8 @@ describe('verification website', () => {
 			/** Loads the puzzle page and returns a solved ALTCHA payload for it */
 			async loadPuzzle(): Promise<string> {
 				const html = await (await request('/verify')).text();
+				// The turned picture arrives inline with the page, no second request
+				expect(html).toMatch(/<img src="data:image\/webp;base64,[A-Za-z0-9+/=]{1000,}"/);
 				const attribute = /challenge="([^"]+)"/.exec(html)?.[1] ?? '';
 				const challenge: Challenge = JSON.parse(attribute.replaceAll('&quot;', '"').replaceAll('&amp;', '&'));
 				const solution = await solveChallenge({ challenge, deriveKey });
@@ -71,6 +92,9 @@ describe('verification website', () => {
 			},
 			async angle(raw: string): Promise<number> {
 				return (await findToken(db(), raw))?.puzzle?.angle ?? Number.NaN;
+			},
+			async imageId(raw: string): Promise<string> {
+				return (await findToken(db(), raw))?.puzzle?.imageId ?? '';
 			},
 		};
 	}
@@ -82,7 +106,6 @@ describe('verification website', () => {
 
 		await flow.passDisclaimer();
 		const altcha = await flow.loadPuzzle();
-		expect((await flow.request('/verify/puzzle.webp')).headers.get('content-type')).toBe('image/webp');
 
 		flow.tick(2000);
 		const response = await flow.request('/verify/puzzle', { rotation: String(-(await flow.angle(raw))), altcha });
@@ -235,8 +258,40 @@ describe('verification website', () => {
 		expect(await response.text()).toContain('outdated');
 	});
 
-	it('lists image credits', async () => {
+	it('has no image credits page: linking the originals would hand out every upright picture', async () => {
 		const flow = setup();
-		expect(await (await flow.request('/verify/credits')).text()).toContain('Wikimedia Commons');
+		expect((await flow.request('/verify/credits')).status).toBe(404);
+		await flow.open();
+		expect(await (await flow.request('/verify')).text()).not.toContain('credits');
+	});
+
+	it('prepares the first puzzle while the disclaimer is shown, and then uses it', async () => {
+		const flow = setup();
+		const raw = await flow.open();
+		expect((await flow.request('/verify')).status).toBe(200);
+		await vi.waitFor(async () => expect(await flow.imageId(raw)).not.toBe(''));
+		const prepared = await findToken(db(), raw);
+
+		await flow.passDisclaimer();
+		await flow.loadPuzzle();
+		const shown = await findToken(db(), raw);
+		expect(shown?.puzzle?.imageId).toBe(prepared?.puzzle?.imageId);
+		expect(shown?.puzzle?.angle).toBe(prepared?.puzzle?.angle);
+	});
+
+	it('shows the caption of the picture being turned, from the very first one', async () => {
+		const flow = setup();
+		const raw = await flow.open();
+		await flow.passDisclaimer();
+		const first = await (await flow.request('/verify')).text();
+		expect(first).toContain(`Caption of ${await flow.imageId(raw)}`);
+		expect(first).not.toContain('Not quite upright');
+
+		const altcha = await flow.loadPuzzle();
+		flow.tick(2000);
+		await flow.request('/verify/puzzle', { rotation: String(-(await flow.angle(raw)) + 90), altcha });
+		const retry = await (await flow.request('/verify')).text();
+		expect(retry).toContain('Not quite upright');
+		expect(retry).toContain(`Caption of ${await flow.imageId(raw)}`);
 	});
 });

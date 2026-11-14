@@ -10,6 +10,7 @@ import { loadConfig } from './lib/config.ts';
 import { connectDatabase } from './lib/database.ts';
 import { type Env, parseEnv } from './lib/env.ts';
 import { grantAccess } from './features/onboarding/grant.ts';
+import { resolveImagePool } from './features/onboarding/puzzle.ts';
 import { onboardingRoutes } from './features/onboarding/web/routes.tsx';
 import { registerFeatures } from './lib/features.ts';
 import { createHttpApp, describeAddress, startHttpServer, stopHttpServer } from './lib/http.ts';
@@ -93,6 +94,13 @@ try {
 
 	const routes = [];
 	if (config.onboarding && env.ALTCHA_HMAC_KEY) {
+		const { pool, bundled } = await resolveImagePool(env.PUZZLE_IMAGES_DIR);
+		if (pool.files.length === 0) throw new Error('The verification puzzle has no images');
+		if (bundled) {
+			logger.warn(`No puzzle images in ${env.PUZZLE_IMAGES_DIR}, using the bundled lab photos`);
+		} else {
+			logger.info({ images: pool.files.length }, `Using puzzle images from ${env.PUZZLE_IMAGES_DIR}`);
+		}
 		routes.push(
 			onboardingRoutes({
 				db: database.db,
@@ -101,6 +109,7 @@ try {
 				// Plain http on localhost in development
 				secureCookies: config.onboarding.publicUrl.startsWith('https://'),
 				grant: grantAccess,
+				images: pool,
 			}),
 		);
 	}

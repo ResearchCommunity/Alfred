@@ -18,7 +18,12 @@ describe('welcome messages', () => {
 				verifiedRoleId: '123456789012345678',
 				welcomeChannelId: '123456789012345678',
 				publicUrl: 'https://verify.example.org',
-				rulesContent: 'Be nice',
+				rules: {
+					title: 'Rules',
+					intro: 'Hi',
+					headline: { name: 'No sourcing', text: 'Never' },
+					list: [{ name: 'Be nice', text: 'Always' }],
+				},
 			},
 		});
 		for (const line of config.onboarding?.welcomeMessages ?? []) {
