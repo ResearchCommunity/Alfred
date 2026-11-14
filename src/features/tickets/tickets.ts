@@ -9,10 +9,12 @@ import {
 	type GuildMember,
 	MessageFlags,
 	type MessageCreateOptions,
+	ModalBuilder,
 	OverwriteType,
 	PermissionFlagsBits,
 	type TextChannel,
 	TextDisplayBuilder,
+	TextInputStyle,
 } from 'discord.js';
 import type { Config } from '../../lib/config.ts';
 import { Mutex } from '../../lib/mutex.ts';
@@ -30,6 +32,12 @@ export const TicketButton = {
 	Open: 'tickets:open',
 	Close: 'tickets:close',
 	ConfirmClose: 'tickets:close-confirm',
+} as const;
+
+/** The confirmation dialog the "Tripsit me!" button opens */
+export const TicketDialog = {
+	Id: 'tickets:open-dialog',
+	Details: 'details',
 } as const;
 
 const NAME_PREFIX = 'tripsit-';
@@ -51,7 +59,7 @@ export function isTicketChannel(channel: { parentId: string | null; name: string
 	return channel.parentId === config.categoryId && channel.name.startsWith(NAME_PREFIX);
 }
 
-function findOpenTicket(category: CategoryChannel, memberId: string): TextChannel | undefined {
+export function findOpenTicket(category: CategoryChannel, memberId: string): TextChannel | undefined {
 	return category.children.cache.find(
 		(channel): channel is TextChannel =>
 			channel.type === ChannelType.GuildText &&
@@ -60,10 +68,15 @@ function findOpenTicket(category: CategoryChannel, memberId: string): TextChanne
 	);
 }
 
+/**
+ * Opens a member's ticket, or returns the one they already have. `details` is their answer
+ * to "What's going on?": it is only ever posted into the new channel, never logged or kept.
+ */
 export function openTicket(
 	member: GuildMember,
 	category: CategoryChannel,
 	config: TicketsConfig,
+	details?: string,
 ): Promise<{ channel: TextChannel; existing: boolean }> {
 	return openLock.run(async () => {
 		const existing = findOpenTicket(category, member.id);
@@ -89,18 +102,27 @@ export function openTicket(
 			],
 		});
 
-		await channel.send(ticketIntro(member.id, config));
+		await channel.send(ticketIntro(member.id, config, details));
 		return { channel, existing: false };
 	});
 }
 
-function ticketIntro(memberId: string, config: TicketsConfig): MessageCreateOptions {
+/** Quotes every line, so a multi-line answer stays one quote */
+const quote = (text: string) =>
+	text
+		.split('\n')
+		.map((line) => `> ${line}`)
+		.join('\n');
+
+export function ticketIntro(memberId: string, config: TicketsConfig, details?: string): MessageCreateOptions {
+	const answer = details?.trim();
 	const container = new ContainerBuilder()
 		.addTextDisplayComponents(
 			new TextDisplayBuilder().setContent(
 				`<@${memberId}> <@&${config.tripsitterRoleId}>\n` +
 					"### Here's your private tripsitting channel\n" +
 					'Only you and our tripsitters can see it. Take your time, someone will be with you shortly.\n' +
+					(answer ? `### What's going on\n${quote(answer)}\n` : '') +
 					'-# When you are done, anyone here can close it. The channel and everything in it will be deleted for good.',
 			),
 		)
@@ -120,6 +142,29 @@ function ticketIntro(memberId: string, config: TicketsConfig): MessageCreateOpti
 		// Explicitly allowed: the client default never pings roles
 		allowedMentions: { users: [memberId], roles: [config.tripsitterRoleId] },
 	};
+}
+
+export function ticketDialog(): ModalBuilder {
+	return new ModalBuilder()
+		.setCustomId(TicketDialog.Id)
+		.setTitle('Open a tripsit channel?')
+		.addTextDisplayComponents(
+			new TextDisplayBuilder().setContent(
+				"This opens a private text channel and pings our tripsitters in it. Please don't open one just for fun.",
+			),
+		)
+		.addLabelComponents((label) =>
+			label
+				.setLabel("What's going on?")
+				.setDescription("Optional. What you took, how much, when, and how you're feeling.")
+				.setTextInputComponent((input) =>
+					input
+						.setCustomId(TicketDialog.Details)
+						.setStyle(TextInputStyle.Paragraph)
+						.setRequired(false)
+						.setMaxLength(1000),
+				),
+		);
 }
 
 export function ticketPanel(config: TicketsConfig): MessageCreateOptions {
