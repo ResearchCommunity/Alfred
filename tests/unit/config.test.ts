@@ -23,4 +23,31 @@ describe('config', () => {
 		const committed: unknown = JSON.parse(await read('config.schema.json'));
 		expect(committed).toEqual(buildConfigJsonSchema());
 	});
+	describe('onboarding', () => {
+		const base = {
+			guildId: '123456789012345678',
+			onboarding: {
+				verifiedRoleId: '123456789012345678',
+				welcomeChannelId: '123456789012345678',
+				publicUrl: 'https://verify.example.org/',
+				rulesContent: 'Be nice',
+			},
+		};
+
+		it('ships the 15 old welcome lines, each with a %user% placeholder', () => {
+			const { welcomeMessages } = parseConfig(base).onboarding ?? {};
+			expect(welcomeMessages).toHaveLength(15);
+			for (const line of welcomeMessages ?? []) expect(line).toContain('%user%');
+		});
+
+		it('strips the trailing slash from publicUrl', () => {
+			expect(parseConfig(base).onboarding?.publicUrl).toBe('https://verify.example.org');
+		});
+
+		it('rejects a publicUrl that is not a URL', () => {
+			expect(() => parseConfig({ ...base, onboarding: { ...base.onboarding, publicUrl: 'verify' } })).toThrow(
+				/publicUrl/,
+			);
+		});
+	});
 });

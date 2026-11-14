@@ -57,6 +57,9 @@ process.once('SIGTERM', () => void shutdown(0));
 try {
 	const config = await loadConfig(env.CONFIG_PATH);
 	container.config = config;
+	if (config.onboarding && !env.ALTCHA_HMAC_KEY) {
+		throw new Error('ALTCHA_HMAC_KEY must be set (32+ characters) when onboarding is configured');
+	}
 
 	const database = await connectDatabase(env);
 	container.mongo = database.client;

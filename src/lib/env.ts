@@ -17,6 +17,9 @@ export const EnvSchema = z.object({
 	HTTP_PORT: z.coerce.number().int().min(1).max(65_535).default(3050),
 
 	CONFIG_PATH: z.string().min(1).default('config.yaml'),
+
+	// Signs ALTCHA proof-of-work challenges. Required when `onboarding` is configured.
+	ALTCHA_HMAC_KEY: z.string().min(32).optional(),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

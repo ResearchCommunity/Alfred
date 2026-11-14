@@ -36,6 +36,7 @@ const NationalitySchema = z
 		anchorRoleId: Snowflake.optional().describe(
 			'New country roles are created directly below this role. Without it they land at the bottom.',
 		),
+		panelText: z.string().min(1).max(4000).optional().describe('Text of the /panel nationality info message'),
 	})
 	.describe('Self-assignable country roles (/nationality)');
 
@@ -54,6 +55,47 @@ const TicketsSchema = z
 	})
 	.describe('Private tripsitting channels. Leave this section out to disable tickets.');
 
+// The welcome lines of the old bot. `%user%` becomes a mention of the new member.
+const DEFAULT_WELCOME_MESSAGES = [
+	'A warm welcome to %user% ❤️',
+	'%user% is now a fellow researcher 🧑‍🔬',
+	'Welcome %user%! May the force be with you 💫',
+	'%user%: \\*enter stage left\\*',
+	"Does anyone know %user%? If not, now's the time to change that!",
+	'%user% is now ONE OF US! ONE OF US!',
+	'%user% has descended onto the server!',
+	'May I introduce everyone to %user%?',
+	"It's getting hot in here 🔥 %user% just arrived!",
+	"Roses are red, violets are blue, %user% just joined, and I can't rhyme",
+	'This server has been sponsored by Raid Shadow Legends. Oh, and by %user%',
+	'%user% just left. If it was opposite day, that is.',
+	'🤖 Beep Boop EVENT_USER_JOIN %user% ; DESTROY_ALL_HUMANS_INIT Boop Beep 🤖',
+	'EVERYONE QUIET! %user% is here!',
+	'Finally, after all these years, %user% has joined!',
+];
+
+const OnboardingSchema = z
+	.strictObject({
+		verifiedRoleId: Snowflake.describe('Role members get after passing verification'),
+		welcomeChannelId: Snowflake.describe('Channel the welcome message is posted in'),
+		publicUrl: z
+			.url({ protocol: /^https?$/ })
+			.transform((url) => url.replace(/\/+$/, ''))
+			.describe('Public base URL of the verification site, e.g. https://verify.research-community.org'),
+		rulesContent: z.string().min(1).max(4000).describe('Rules shown on the rules panel (markdown)'),
+		disclaimerSentence: z
+			.string()
+			.min(1)
+			.default('This server is not affiliated with any vendor')
+			.describe('Sentence visitors must retype to confirm this is not vendor support'),
+		welcomeMessages: z
+			.array(z.string().min(1).includes('%user%'))
+			.min(1)
+			.default(DEFAULT_WELCOME_MESSAGES)
+			.describe('Welcome lines, one is picked at random. %user% becomes a mention.'),
+	})
+	.describe('Rules panel and verification website. Leave this section out to disable onboarding.');
+
 /**
  * Guild-specific settings. Lives in `config.yaml` (see `config.example.yaml`),
  * validated at boot. Feature sections get added here as features are built.
@@ -64,6 +106,7 @@ export const ConfigSchema = z.strictObject({
 	linkCleaner: LinkCleanerSchema.prefault({}),
 	nationality: NationalitySchema.prefault({}),
 	tickets: TicketsSchema.optional(),
+	onboarding: OnboardingSchema.optional(),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;

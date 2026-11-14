@@ -19,4 +19,8 @@ describe('env', () => {
 	it('rejects non-mongodb database URLs', () => {
 		expect(() => parseEnv({ ...valid, DATABASE_URL: 'postgres://localhost/alfred' })).toThrow(/DATABASE_URL/);
 	});
+
+	it('rejects a short ALTCHA key', () => {
+		expect(() => parseEnv({ ...valid, ALTCHA_HMAC_KEY: 'tooshort12' })).toThrow(/ALTCHA_HMAC_KEY/);
+	});
 });

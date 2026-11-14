@@ -19,7 +19,19 @@ linkCleaner:
 nationality:
     # New country roles are created directly below this role (e.g. your verified role)
     anchorRoleId: '000000000000000000'
+    # Text of the /panel nationality info message
+    panelText: 'Use `/nationality set` to show where you are from!'
 
 tickets:
     categoryId: '000000000000000000'
     tripsitterRoleId: '000000000000000000'
+
+onboarding:
+    verifiedRoleId: '000000000000000000'
+    welcomeChannelId: '000000000000000000'
+    # Public address of the verification site (Caddy proxies it to Alfred's HTTP port)
+    publicUrl: 'https://verify.example.org'
+    rulesContent: |
+        ## Rules
+        1. Be excellent to each other.
+    # disclaimerSentence and welcomeMessages have defaults; override them here if you like

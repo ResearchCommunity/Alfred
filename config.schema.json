@@ -81,6 +81,12 @@
                     "description": "New country roles are created directly below this role. Without it they land at the bottom.",
                     "type": "string",
                     "pattern": "^\\d{17,20}$"
+                },
+                "panelText": {
+                    "description": "Text of the /panel nationality info message",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000
                 }
             },
             "additionalProperties": false,
@@ -113,6 +119,74 @@
             ],
             "additionalProperties": false,
             "description": "Private tripsitting channels. Leave this section out to disable tickets."
+        },
+        "onboarding": {
+            "type": "object",
+            "properties": {
+                "verifiedRoleId": {
+                    "type": "string",
+                    "pattern": "^\\d{17,20}$",
+                    "description": "Role members get after passing verification"
+                },
+                "welcomeChannelId": {
+                    "type": "string",
+                    "pattern": "^\\d{17,20}$",
+                    "description": "Channel the welcome message is posted in"
+                },
+                "publicUrl": {
+                    "description": "Public base URL of the verification site, e.g. https://verify.research-community.org",
+                    "type": "string",
+                    "format": "uri"
+                },
+                "rulesContent": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000,
+                    "description": "Rules shown on the rules panel (markdown)"
+                },
+                "disclaimerSentence": {
+                    "default": "This server is not affiliated with any vendor",
+                    "description": "Sentence visitors must retype to confirm this is not vendor support",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "welcomeMessages": {
+                    "default": [
+                        "A warm welcome to %user% ❤️",
+                        "%user% is now a fellow researcher 🧑‍🔬",
+                        "Welcome %user%! May the force be with you 💫",
+                        "%user%: \\*enter stage left\\*",
+                        "Does anyone know %user%? If not, now's the time to change that!",
+                        "%user% is now ONE OF US! ONE OF US!",
+                        "%user% has descended onto the server!",
+                        "May I introduce everyone to %user%?",
+                        "It's getting hot in here 🔥 %user% just arrived!",
+                        "Roses are red, violets are blue, %user% just joined, and I can't rhyme",
+                        "This server has been sponsored by Raid Shadow Legends. Oh, and by %user%",
+                        "%user% just left. If it was opposite day, that is.",
+                        "🤖 Beep Boop EVENT_USER_JOIN %user% ; DESTROY_ALL_HUMANS_INIT Boop Beep 🤖",
+                        "EVERYONE QUIET! %user% is here!",
+                        "Finally, after all these years, %user% has joined!"
+                    ],
+                    "description": "Welcome lines, one is picked at random. %user% becomes a mention.",
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "format": "includes",
+                        "pattern": "%user%"
+                    }
+                }
+            },
+            "required": [
+                "verifiedRoleId",
+                "welcomeChannelId",
+                "publicUrl",
+                "rulesContent"
+            ],
+            "additionalProperties": false,
+            "description": "Rules panel and verification website. Leave this section out to disable onboarding."
         }
     },
     "required": [
