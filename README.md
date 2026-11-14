@@ -54,6 +54,32 @@ docker compose logs -f alfred
 The database runs on an internal-only network with no published ports. Back it up with
 `docker compose exec documentdb pg_dumpall ...` (the documents are stored in Postgres).
 
+### Verification site
+
+The rules panel's **Verify** link points to `onboarding.publicUrl` in `config.yaml`. Caddy
+serves that domain and proxies it to Alfred:
+
+```caddyfile
+verify.research-community.org {
+	reverse_proxy 127.0.0.1:3050
+}
+```
+
+- Set `ALTCHA_HMAC_KEY` in `.env` (generate one with `openssl rand -base64 48`). Alfred refuses
+  to start without it while `onboarding` is configured.
+- Mark the server **age-restricted** in Discord (Server Settings → Access → Age-Restricted
+  Server). That's the real age barrier: Alfred doesn't check ages and warns at startup if the
+  setting is off.
+- Health check: `GET /healthz` returns 200 once the bot is connected to Discord.
+
+### Switching over from the old bot
+
+1. Stop the old bot. Close any open tripsit tickets it created (they're named after members).
+2. Fill in `config.yaml` (`onboarding`, `tickets`, `nationality`) and `.env`, then start Alfred.
+3. Point the verification domain at Alfred in Caddy. Old `/captcha` links show an "outdated" page.
+4. The old rules and ticket panels keep working (their buttons are still recognised).
+   Re-post them with `/panel` whenever convenient for the new look.
+
 ## License
 
 [AGPL-3.0-or-later](LICENSE)
