@@ -15,8 +15,6 @@ config.yaml
 # Verification puzzle images: deployment-specific, never committed (see assets/verification/images/README.md)
 puzzle-images/
 
-# Old bot checkout (reference only)
-.old/
 
 # Brainstorming mockups
 .superpowers/
