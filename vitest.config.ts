@@ -5,6 +5,8 @@ export default defineConfig({
 	// from tsconfig. Without this, Sapphire's @ApplyOptions is emitted raw and explodes.
 	oxc: {
 		decorator: { legacy: true },
+		// Same story for JSX: use Hono's runtime, not React's
+		jsx: { runtime: 'automatic', importSource: 'hono/jsx' },
 	},
 	test: {
 		environment: 'node',

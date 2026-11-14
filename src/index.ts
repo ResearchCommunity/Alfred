@@ -9,6 +9,8 @@ import { GatewayIntentBits } from 'discord.js';
 import { loadConfig } from './lib/config.ts';
 import { connectDatabase } from './lib/database.ts';
 import { type Env, parseEnv } from './lib/env.ts';
+import { grantAccess } from './features/onboarding/grant.ts';
+import { onboardingRoutes } from './features/onboarding/web/routes.tsx';
 import { registerFeatures } from './lib/features.ts';
 import { createHttpApp, describeAddress, startHttpServer, stopHttpServer } from './lib/http.ts';
 import { createLogger, SapphirePinoLogger } from './lib/logger.ts';
@@ -89,7 +91,21 @@ try {
 	const features = await registerFeatures(client);
 	logger.info({ features }, `Registered ${features.length} feature(s)`);
 
-	const http = await startHttpServer(createHttpApp({ isReady: () => client.isReady() }), {
+	const routes = [];
+	if (config.onboarding && env.ALTCHA_HMAC_KEY) {
+		routes.push(
+			onboardingRoutes({
+				db: database.db,
+				config: config.onboarding,
+				altchaKey: env.ALTCHA_HMAC_KEY,
+				// Plain http on localhost in development
+				secureCookies: config.onboarding.publicUrl.startsWith('https://'),
+				grant: grantAccess,
+			}),
+		);
+	}
+
+	const http = await startHttpServer(createHttpApp({ isReady: () => client.isReady(), routes }), {
 		host: env.HTTP_HOST,
 		port: env.HTTP_PORT,
 	});

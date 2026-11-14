@@ -4,16 +4,20 @@ import { Hono } from 'hono';
 export interface HttpDependencies {
 	/** Whether the bot is fully up (Discord gateway connected). Drives the health check. */
 	isReady: () => boolean;
+	/** Feature routes to mount (e.g. the verification site) */
+	routes?: Array<(app: Hono) => void>;
 }
 
 /**
  * The web side of Alfred (verification pages etc.). Feature routes get mounted here.
  */
-export function createHttpApp({ isReady }: HttpDependencies): Hono {
+export function createHttpApp({ isReady, routes = [] }: HttpDependencies): Hono {
 	const app = new Hono();
 
 	// Used by Docker's HEALTHCHECK — 503 until the Discord client is ready
 	app.get('/healthz', (c) => (isReady() ? c.json({ status: 'ok' }) : c.json({ status: 'starting' }, 503)));
+
+	for (const mount of routes) mount(app);
 
 	return app;
 }

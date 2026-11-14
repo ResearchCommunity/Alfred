@@ -89,6 +89,11 @@ export async function setPuzzle(db: Db, hash: string, puzzle: PuzzleState, altch
 	);
 }
 
+/** Each puzzle page render gets a fresh ALTCHA challenge; only the latest one counts */
+export async function setAltchaSignature(db: Db, hash: string, altchaSignature: string): Promise<void> {
+	await collection(db).updateOne({ _id: hash }, { $set: { altchaSignature } });
+}
+
 /** Counts a wrong puzzle answer and returns the total so far. */
 export async function recordFailedAttempt(db: Db, hash: string): Promise<number> {
 	const result = await collection(db).findOneAndUpdate(
