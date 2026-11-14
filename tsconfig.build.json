@@ -8,5 +8,6 @@
 		"incremental": true,
 		"tsBuildInfoFile": "dist/.tsbuildinfo"
 	},
-	"include": ["src"]
+	"include": ["src"],
+	"exclude": ["src/web/client"]
 }

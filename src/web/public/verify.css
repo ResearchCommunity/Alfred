@@ -1,0 +1,244 @@
+/* "Trip lab": the verification site's look. Dark base, glows in the logo's colors. */
+
+@view-transition {
+	navigation: auto;
+}
+
+:root {
+	color-scheme: dark;
+	--bg: #120a1f;
+	--panel: #1c1230cc;
+	--text: #f3eaff;
+	--muted: #c9b8e6;
+	--pink: #ff3cac;
+	--purple: #784ba0;
+	--blue: #2b86c5;
+	--gold: #f7d04a;
+	--error: #ff8a8a;
+	--gradient: linear-gradient(90deg, var(--pink), var(--purple), var(--blue));
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	min-height: 100%;
+}
+
+body {
+	min-height: 100dvh;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 1rem;
+	padding: 2rem 1rem;
+	background:
+		radial-gradient(circle at 15% 10%, #ff3cac40, transparent 40%),
+		radial-gradient(circle at 85% 85%, #2b86c540, transparent 40%),
+		radial-gradient(circle at 75% 15%, #f7d04a22, transparent 35%), var(--bg);
+	background-attachment: fixed;
+	color: var(--text);
+	font:
+		1rem/1.55 system-ui,
+		-apple-system,
+		'Segoe UI',
+		sans-serif;
+}
+
+.panel {
+	view-transition-name: panel;
+	width: min(34rem, 100%);
+	padding: 2rem 1.75rem;
+	text-align: center;
+	background: var(--panel);
+	border: 1px solid #ff3cac66;
+	border-radius: 1.5rem;
+	box-shadow: 0 0 3rem #784ba066;
+	backdrop-filter: blur(8px);
+}
+
+.logo {
+	width: 4.5rem;
+	height: 4.5rem;
+	border-radius: 1.1rem;
+	box-shadow: 0 0 1.5rem #ff3cac55;
+}
+
+h1 {
+	margin: 1rem 0 0.5rem;
+	font-size: 1.5rem;
+	line-height: 1.25;
+}
+
+p {
+	color: var(--muted);
+}
+
+a {
+	color: var(--pink);
+}
+
+.steps {
+	display: flex;
+	justify-content: center;
+	gap: 0.4rem;
+	margin: 1rem 0 0;
+	padding: 0;
+	list-style: none;
+	font-size: 0.8rem;
+}
+
+.steps li {
+	padding: 0.2rem 0.75rem;
+	border-radius: 999px;
+	background: #ffffff14;
+	color: var(--muted);
+}
+
+.steps li.active {
+	background: var(--gradient);
+	color: white;
+	font-weight: 600;
+}
+
+form {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.9rem;
+	margin-top: 1.25rem;
+}
+
+.sentence {
+	padding: 0.5rem 0.9rem;
+	border-radius: 0.6rem;
+	background: #000a;
+	color: var(--gold);
+	font-family: ui-monospace, monospace;
+	/* Retyping is the point: no copy-paste */
+	user-select: none;
+	-webkit-user-select: none;
+}
+
+input[type='text'] {
+	width: 100%;
+	padding: 0.7rem 0.9rem;
+	border: 1px solid #ff3cac55;
+	border-radius: 0.7rem;
+	background: #0008;
+	color: var(--text);
+	font: inherit;
+}
+
+input[type='text']:focus-visible {
+	outline: 2px solid var(--pink);
+	outline-offset: 2px;
+}
+
+button {
+	padding: 0.7rem 1.6rem;
+	border: 0;
+	border-radius: 999px;
+	background: var(--gradient);
+	color: white;
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+	box-shadow: 0 0 1.2rem #ff3cac55;
+	transition:
+		transform 0.15s,
+		opacity 0.15s;
+}
+
+button:hover:not(:disabled) {
+	transform: translateY(-1px) scale(1.02);
+}
+
+button:disabled {
+	opacity: 0.5;
+	cursor: progress;
+}
+
+.puzzle-image {
+	width: min(20rem, 80vw);
+	aspect-ratio: 1;
+	border-radius: 50%;
+	overflow: hidden;
+	box-shadow:
+		0 0 0 3px var(--pink),
+		0 0 2rem #ff3cacaa;
+	cursor: grab;
+	touch-action: none;
+	user-select: none;
+}
+
+.puzzle-image.dragging {
+	cursor: grabbing;
+}
+
+.puzzle-image img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+}
+
+input[type='range'] {
+	width: min(20rem, 85vw);
+	accent-color: var(--pink);
+}
+
+.hint {
+	margin: 0;
+	font-size: 0.85rem;
+}
+
+.error {
+	color: var(--error);
+	margin: 0;
+}
+
+.credits {
+	text-align: left;
+	font-size: 0.85rem;
+	color: var(--muted);
+}
+
+footer {
+	font-size: 0.8rem;
+	color: var(--muted);
+}
+
+footer a {
+	color: var(--muted);
+}
+
+.visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+	.panel {
+		padding: 1.5rem 1rem;
+		border-radius: 1rem;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	@view-transition {
+		navigation: none;
+	}
+
+	button {
+		transition: none;
+	}
+}

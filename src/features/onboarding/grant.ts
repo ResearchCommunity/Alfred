@@ -3,6 +3,14 @@ import { DiscordAPIError, RESTJSONErrorCodes } from 'discord.js';
 
 export type GrantResult = 'granted' | 'already' | 'not-member';
 
+/** Discord says "Unknown Member" for people who left, and "Unknown User" for deleted accounts */
+export function isMissingMember(error: unknown): boolean {
+	return (
+		error instanceof DiscordAPIError &&
+		(error.code === RESTJSONErrorCodes.UnknownMember || error.code === RESTJSONErrorCodes.UnknownUser)
+	);
+}
+
 export function renderWelcome(template: string, userId: string): string {
 	return template.replaceAll('%user%', `<@${userId}>`);
 }
@@ -21,7 +29,7 @@ export async function grantAccess(userId: string): Promise<GrantResult> {
 	try {
 		member = await guild.members.fetch(userId);
 	} catch (error) {
-		if (error instanceof DiscordAPIError && error.code === RESTJSONErrorCodes.UnknownMember) return 'not-member';
+		if (isMissingMember(error)) return 'not-member';
 		throw error;
 	}
 

@@ -1504,6 +1504,7 @@ __metadata:
     oxlint-tsgolint: "npm:^7.0.2007"
     pino: "npm:^10.4.0"
     pino-pretty: "npm:^13.2.0"
+    rolldown: "npm:1.2.19"
     sharp: "npm:^0.35.5"
     testcontainers: "npm:^12.2.1"
     tsc-watch: "npm:^7.2.1"
@@ -3250,7 +3251,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rolldown@npm:~1.2.18":
+"rolldown@npm:1.2.19, rolldown@npm:~1.2.18":
   version: 1.2.19
   resolution: "rolldown@npm:1.2.19"
   dependencies:

@@ -25,6 +25,10 @@
 	},
 	"overrides": [
 		{
+			"files": ["src/web/client/**"],
+			"env": { "browser": true }
+		},
+		{
 			"files": ["scripts/**"],
 			"rules": { "no-console": "off" }
 		}

@@ -8,8 +8,8 @@
 	"type": "module",
 	"main": "dist/index.js",
 	"scripts": {
-		"build": "tsc -p tsconfig.build.json",
-		"dev": "tsc-watch -p tsconfig.build.json --noClear --onSuccess \"node --env-file-if-exists=.env --enable-source-maps dist/index.js\"",
+		"build": "tsc -p tsconfig.build.json && yarn build:client",
+		"dev": "yarn build:client && tsc-watch -p tsconfig.build.json --noClear --onSuccess \"node --env-file-if-exists=.env --enable-source-maps dist/index.js\"",
 		"start": "node --env-file-if-exists=.env --enable-source-maps dist/index.js",
 		"typecheck": "tsc --noEmit",
 		"lint": "oxlint --type-aware",
@@ -22,7 +22,8 @@
 		"config:schema": "node scripts/generate-config-schema.ts",
 		"db:up": "docker compose -f compose.dev.yaml up -d",
 		"db:down": "docker compose -f compose.dev.yaml down",
-		"rules:update": "node scripts/update-clearurls.ts"
+		"rules:update": "node scripts/update-clearurls.ts",
+		"build:client": "node scripts/build-client.ts"
 	},
 	"dependencies": {
 		"@hono/node-server": "^2.1.8",
@@ -45,6 +46,7 @@
 		"oxlint": "^1.93.0",
 		"oxlint-tsgolint": "^7.0.2007",
 		"pino-pretty": "^13.2.0",
+		"rolldown": "1.2.19",
 		"testcontainers": "^12.2.1",
 		"tsc-watch": "^7.2.1",
 		"typescript": "^7.0.2",

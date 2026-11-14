@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { renderWelcome } from '../../src/features/onboarding/grant.ts';
+import { DiscordAPIError, RESTJSONErrorCodes } from 'discord.js';
+import { isMissingMember, renderWelcome } from '../../src/features/onboarding/grant.ts';
 import { parseConfig } from '../../src/lib/config.ts';
+
+const apiError = (code: number) =>
+	new DiscordAPIError({ code, message: 'x' }, code, 404, 'GET', '/guilds/1/members/2', {});
 
 describe('welcome messages', () => {
 	it('replaces every %user% with a mention', () => {
@@ -22,5 +26,12 @@ describe('welcome messages', () => {
 			expect(rendered).toContain('<@42>');
 			expect(rendered).not.toContain('%user%');
 		}
+	});
+
+	it('treats left members and deleted accounts as missing', () => {
+		expect(isMissingMember(apiError(RESTJSONErrorCodes.UnknownMember))).toBe(true);
+		expect(isMissingMember(apiError(RESTJSONErrorCodes.UnknownUser))).toBe(true);
+		expect(isMissingMember(apiError(RESTJSONErrorCodes.MissingPermissions))).toBe(false);
+		expect(isMissingMember(new Error('network'))).toBe(false);
 	});
 });

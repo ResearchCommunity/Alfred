@@ -1,5 +1,9 @@
+import { fileURLToPath } from 'node:url';
 import { type ServerType, serve } from '@hono/node-server';
+import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
+
+const PUBLIC_DIR = fileURLToPath(new URL('../web/public/', import.meta.url));
 
 export interface HttpDependencies {
 	/** Whether the bot is fully up (Discord gateway connected). Drives the health check. */
@@ -16,6 +20,12 @@ export function createHttpApp({ isReady, routes = [] }: HttpDependencies): Hono 
 
 	// Used by Docker's HEALTHCHECK — 503 until the Discord client is ready
 	app.get('/healthz', (c) => (isReady() ? c.json({ status: 'ok' }) : c.json({ status: 'starting' }, 503)));
+
+	// Browser assets of the verification site, built by scripts/build-client.ts
+	app.use(
+		'/assets/*',
+		serveStatic({ root: PUBLIC_DIR, rewriteRequestPath: (path) => path.replace(/^\/assets/, '') }),
+	);
 
 	for (const mount of routes) mount(app);
 
