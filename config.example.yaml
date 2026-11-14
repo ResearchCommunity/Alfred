@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=./config.schema.json
+#
+# Copy to config.yaml and fill in. Validated on startup; editors with the YAML
+# extension get autocomplete from config.schema.json (regenerate: `yarn config:schema`).
+
+# Right-click your server → Copy Server ID (requires Developer Mode)
+guildId: '000000000000000000'
+
+presence:
+    status: online
+    activity:
+        type: watching
+        name: over the community
+
+linkCleaner:
+    enabled: true
+    ignoredChannelIds: []
+
+nationality:
+    # New country roles are created directly below this role (e.g. your verified role)
+    anchorRoleId: '000000000000000000'
+    # Text of the /panel nationality info message
+    panelText: 'Use `/nationality set` to show where you are from!'
+
+tickets:
+    categoryId: '000000000000000000'
+    tripsitterRoleId: '000000000000000000'
+
+onboarding:
+    verifiedRoleId: '000000000000000000'
+    welcomeChannelId: '000000000000000000'
+    # Public address of the verification site (Caddy proxies it to Alfred's HTTP port)
+    publicUrl: 'https://verify.example.org'
+    rules:
+        author: 'Example Community'
+        title: 'Server rules'
+        intro: 'These apply everywhere on the server, to members and staff alike.'
+        # Optional picture in the top right corner: an https URL, or a file uploaded with the panel
+        #thumbnail: 'assets/rules-thumbnail.png'
+        # The one rule nobody may miss, set apart from the rest
+        headline:
+            name: '🚫 No sourcing or selling'
+            text: "Don't ask or tell where to buy anything."
+        list:
+            - name: 'Be nice'
+              text: 'Be excellent to each other.'
+            - name: 'No spam'
+              text: "Spamming for its own sake isn't allowed."
+              note: 'Optional small print under a rule, e.g. an example.'
+        closing: 'Optional small print at the end.'
+    # disclaimerSentence and welcomeMessages have defaults; override them here if you like

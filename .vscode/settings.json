@@ -1,0 +1,7 @@
+{
+	"editor.defaultFormatter": "oxc.oxc-vscode",
+	"editor.formatOnSave": true,
+	"yaml.schemas": {
+		"./config.schema.json": ["config.yaml", "config.example.yaml"]
+	}
+}

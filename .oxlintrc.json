@@ -1,0 +1,37 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"plugins": ["typescript", "unicorn", "oxc", "import", "node", "promise", "vitest"],
+	"options": {
+		"typeAware": true
+	},
+	"categories": {
+		"correctness": "error",
+		"suspicious": "warn",
+		"perf": "warn"
+	},
+	"rules": {
+		// The most important rules for a Discord bot: un-awaited interaction replies,
+		// role changes etc. silently fail or blow past the 3s interaction deadline.
+		"typescript/no-floating-promises": "error",
+		"typescript/no-misused-promises": "error",
+		"typescript/await-thenable": "error",
+		"typescript/switch-exhaustiveness-check": "error",
+		"typescript/consistent-type-imports": "error",
+		"import/no-cycle": "error",
+		"eqeqeq": "error",
+		"no-console": "error",
+		// MongoDB's primary key
+		"no-underscore-dangle": ["warn", { "allow": ["_id"] }]
+	},
+	"overrides": [
+		{
+			"files": ["src/web/client/**"],
+			"env": { "browser": true }
+		},
+		{
+			"files": ["scripts/**"],
+			"rules": { "no-console": "off" }
+		}
+	],
+	"ignorePatterns": ["dist", ".old", "node_modules"]
+}

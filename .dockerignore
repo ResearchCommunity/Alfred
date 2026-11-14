@@ -1,0 +1,14 @@
+.git
+.old
+.github
+.vscode
+.yarn
+node_modules
+dist
+coverage
+tests
+.env
+.env.*
+config.yaml
+puzzle-images
+*.md

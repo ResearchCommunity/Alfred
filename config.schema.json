@@ -1,0 +1,276 @@
+{
+    "title": "Alfred config",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "guildId": {
+            "type": "string",
+            "pattern": "^\\d{17,20}$",
+            "description": "ID of the guild Alfred serves. Slash commands are registered here."
+        },
+        "presence": {
+            "default": {},
+            "type": "object",
+            "properties": {
+                "status": {
+                    "default": "online",
+                    "type": "string",
+                    "enum": [
+                        "online",
+                        "idle",
+                        "dnd",
+                        "invisible"
+                    ]
+                },
+                "activity": {
+                    "description": "Activity shown under the bot name. \"custom\" shows the name as a plain status text.",
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "enum": [
+                                "playing",
+                                "listening",
+                                "watching",
+                                "competing",
+                                "custom"
+                            ]
+                        },
+                        "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 128
+                        }
+                    },
+                    "required": [
+                        "type",
+                        "name"
+                    ],
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false,
+            "description": "The bot's online status and activity"
+        },
+        "linkCleaner": {
+            "default": {},
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "default": true,
+                    "type": "boolean"
+                },
+                "ignoredChannelIds": {
+                    "default": [],
+                    "description": "Channels (and their threads) where links are left untouched",
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "pattern": "^\\d{17,20}$"
+                    }
+                }
+            },
+            "additionalProperties": false,
+            "description": "Strips tracking parameters from posted links and reposts the message as its author"
+        },
+        "nationality": {
+            "default": {},
+            "type": "object",
+            "properties": {
+                "anchorRoleId": {
+                    "description": "New country roles are created directly below this role. Without it they land at the bottom.",
+                    "type": "string",
+                    "pattern": "^\\d{17,20}$"
+                },
+                "panelText": {
+                    "description": "Text of the /panel nationality info message",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000
+                }
+            },
+            "additionalProperties": false,
+            "description": "Self-assignable country roles (/nationality)"
+        },
+        "tickets": {
+            "type": "object",
+            "properties": {
+                "categoryId": {
+                    "type": "string",
+                    "pattern": "^\\d{17,20}$",
+                    "description": "Category the private tripsit channels are created in"
+                },
+                "tripsitterRoleId": {
+                    "type": "string",
+                    "pattern": "^\\d{17,20}$",
+                    "description": "Role that can see and gets pinged for every ticket"
+                },
+                "panelText": {
+                    "default": "Is your trip going south? Need some assistance or just someone to talk to? Our volunteer tripsitters are here for you!",
+                    "description": "Text of the panel with the \"Tripsit me!\" button (markdown supported)",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000
+                }
+            },
+            "required": [
+                "categoryId",
+                "tripsitterRoleId"
+            ],
+            "additionalProperties": false,
+            "description": "Private tripsitting channels. Leave this section out to disable tickets."
+        },
+        "onboarding": {
+            "type": "object",
+            "properties": {
+                "verifiedRoleId": {
+                    "type": "string",
+                    "pattern": "^\\d{17,20}$",
+                    "description": "Role members get after passing verification"
+                },
+                "welcomeChannelId": {
+                    "type": "string",
+                    "pattern": "^\\d{17,20}$",
+                    "description": "Channel the welcome message is posted in"
+                },
+                "publicUrl": {
+                    "description": "Public base URL of the verification site, e.g. https://verify.research-community.org",
+                    "type": "string",
+                    "format": "uri"
+                },
+                "rules": {
+                    "type": "object",
+                    "properties": {
+                        "author": {
+                            "description": "Small print above the title, e.g. the server name",
+                            "type": "string",
+                            "minLength": 1
+                        },
+                        "title": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Heading of the rules panel"
+                        },
+                        "intro": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Paragraph under the title (markdown)"
+                        },
+                        "thumbnail": {
+                            "description": "Picture in the top right corner: an http(s) URL, or a file path (relative to the working directory) that is uploaded with the panel",
+                            "type": "string",
+                            "minLength": 1
+                        },
+                        "headline": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "minLength": 1
+                                },
+                                "text": {
+                                    "type": "string",
+                                    "minLength": 1
+                                }
+                            },
+                            "required": [
+                                "name",
+                                "text"
+                            ],
+                            "additionalProperties": false,
+                            "description": "The one rule that must not be missed, set apart from the rest"
+                        },
+                        "list": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "minLength": 1
+                                    },
+                                    "text": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "markdown"
+                                    },
+                                    "note": {
+                                        "description": "Small print under the rule, e.g. an example",
+                                        "type": "string",
+                                        "minLength": 1
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "text"
+                                ],
+                                "additionalProperties": false
+                            },
+                            "description": "The other rules, in order"
+                        },
+                        "closing": {
+                            "description": "Small print at the end, before the buttons",
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    },
+                    "required": [
+                        "title",
+                        "intro",
+                        "headline",
+                        "list"
+                    ],
+                    "additionalProperties": false,
+                    "description": "The rules panel members accept before verifying"
+                },
+                "disclaimerSentence": {
+                    "default": "This server is not affiliated with any vendor",
+                    "description": "Sentence visitors must retype to confirm this is not vendor support",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "welcomeMessages": {
+                    "default": [
+                        "A warm welcome to %user% ❤️",
+                        "%user% is now a fellow researcher 🧑‍🔬",
+                        "Welcome %user%! May the force be with you 💫",
+                        "%user%: \\*enter stage left\\*",
+                        "Does anyone know %user%? If not, now's the time to change that!",
+                        "%user% is now ONE OF US! ONE OF US!",
+                        "%user% has descended onto the server!",
+                        "May I introduce everyone to %user%?",
+                        "It's getting hot in here 🔥 %user% just arrived!",
+                        "Roses are red, violets are blue, %user% just joined, and I can't rhyme",
+                        "This server has been sponsored by Raid Shadow Legends. Oh, and by %user%",
+                        "%user% just left. If it was opposite day, that is.",
+                        "🤖 Beep Boop EVENT_USER_JOIN %user% ; DESTROY_ALL_HUMANS_INIT Boop Beep 🤖",
+                        "EVERYONE QUIET! %user% is here!",
+                        "Finally, after all these years, %user% has joined!"
+                    ],
+                    "description": "Welcome lines, one is picked at random. %user% becomes a mention.",
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "format": "includes",
+                        "pattern": "%user%"
+                    }
+                }
+            },
+            "required": [
+                "verifiedRoleId",
+                "welcomeChannelId",
+                "publicUrl",
+                "rules"
+            ],
+            "additionalProperties": false,
+            "description": "Rules panel and verification website. Leave this section out to disable onboarding."
+        }
+    },
+    "required": [
+        "guildId"
+    ],
+    "additionalProperties": false
+}

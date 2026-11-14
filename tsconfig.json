@@ -1,0 +1,36 @@
+{
+	// Type-checks everything (src, tests, scripts). Emitting is done by tsconfig.build.json.
+	"compilerOptions": {
+		"target": "es2024",
+		"lib": ["es2024"],
+		"module": "nodenext",
+		"moduleResolution": "nodenext",
+		// TS 7 defaults `types` to [] — global Node types must be opted into explicitly
+		"types": ["node"],
+
+		"strict": true,
+		"noUncheckedIndexedAccess": true,
+		"noImplicitOverride": true,
+		"noImplicitReturns": true,
+		"noFallthroughCasesInSwitch": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+
+		// Sapphire's decorators (@ApplyOptions etc.) are pre-TC39 "legacy" decorators
+		"experimentalDecorators": true,
+
+		"verbatimModuleSyntax": true,
+		"isolatedModules": true,
+		// Write `./foo.ts` imports; tsc rewrites them to `./foo.js` on emit
+		"rewriteRelativeImportExtensions": true,
+		"resolveJsonModule": true,
+		"skipLibCheck": true,
+
+		// Hono JSX for server-rendered verification pages
+		"jsx": "react-jsx",
+		"jsxImportSource": "hono/jsx",
+
+		"noEmit": true
+	},
+	"include": ["src", "tests", "scripts", "vitest.config.ts"]
+}
