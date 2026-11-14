@@ -31,6 +31,13 @@ export async function unwatch(db: Db, threadId: string): Promise<boolean> {
 	return (await collection(db).deleteOne({ _id: threadId })).deletedCount > 0;
 }
 
+/** Watches a thread unless it already is (then nothing changes). Returns whether it was newly watched. */
+export async function watch(db: Db, threadId: string, userId: string, at = new Date()): Promise<boolean> {
+	const { _id, ...fields } = WatchedThreadSchema.parse({ _id: threadId, watchedBy: userId, watchedAt: at });
+	const result = await collection(db).updateOne({ _id }, { $setOnInsert: fields }, { upsert: true });
+	return result.upsertedCount === 1;
+}
+
 export async function toggleWatch(db: Db, threadId: string, userId: string): Promise<'watched' | 'unwatched'> {
 	if (await unwatch(db, threadId)) return 'unwatched';
 
