@@ -70,7 +70,13 @@ try {
 	ApplicationCommandRegistries.setDefaultBehaviorWhenNotIdentical(RegisterBehavior.BulkOverwrite);
 
 	const client = new SapphireClient({
-		intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+		intents: [
+			GatewayIntentBits.Guilds,
+			GatewayIntentBits.GuildMembers,
+			GatewayIntentBits.GuildMessages,
+			// Privileged: the link cleaner has to read message text
+			GatewayIntentBits.MessageContent,
+		],
 		presence: toPresenceData(config.presence),
 		// Safe default: never ping @everyone/@here/roles unless a message explicitly opts in
 		allowedMentions: { parse: ['users'], repliedUser: false },

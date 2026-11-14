@@ -21,6 +21,16 @@ const PresenceSchema = z
 	})
 	.describe("The bot's online status and activity");
 
+const LinkCleanerSchema = z
+	.strictObject({
+		enabled: z.boolean().default(true),
+		ignoredChannelIds: z
+			.array(Snowflake)
+			.default([])
+			.describe('Channels (and their threads) where links are left untouched'),
+	})
+	.describe('Strips tracking parameters from posted links and reposts the message as its author');
+
 /**
  * Guild-specific settings. Lives in `config.yaml` (see `config.example.yaml`),
  * validated at boot. Feature sections get added here as features are built.
@@ -28,6 +38,7 @@ const PresenceSchema = z
 export const ConfigSchema = z.strictObject({
 	guildId: Snowflake.describe('ID of the guild Alfred serves. Slash commands are registered here.'),
 	presence: PresenceSchema.prefault({}),
+	linkCleaner: LinkCleanerSchema.prefault({}),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;

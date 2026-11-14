@@ -51,6 +51,27 @@
             },
             "additionalProperties": false,
             "description": "The bot's online status and activity"
+        },
+        "linkCleaner": {
+            "default": {},
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "default": true,
+                    "type": "boolean"
+                },
+                "ignoredChannelIds": {
+                    "default": [],
+                    "description": "Channels (and their threads) where links are left untouched",
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "pattern": "^\\d{17,20}$"
+                    }
+                }
+            },
+            "additionalProperties": false,
+            "description": "Strips tracking parameters from posted links and reposts the message as its author"
         }
     },
     "required": [

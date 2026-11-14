@@ -21,7 +21,8 @@
 		"check": "yarn typecheck && yarn lint && yarn format:check && yarn test",
 		"config:schema": "node scripts/generate-config-schema.ts",
 		"db:up": "docker compose -f compose.dev.yaml up -d",
-		"db:down": "docker compose -f compose.dev.yaml down"
+		"db:down": "docker compose -f compose.dev.yaml down",
+		"rules:update": "node scripts/update-clearurls.ts"
 	},
 	"dependencies": {
 		"@hono/node-server": "^2.1.8",

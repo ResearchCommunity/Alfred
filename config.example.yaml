@@ -11,3 +11,7 @@ presence:
     activity:
         type: watching
         name: over the community
+
+linkCleaner:
+    enabled: true
+    ignoredChannelIds: []
