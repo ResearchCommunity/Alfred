@@ -323,6 +323,12 @@
                     "type": "number",
                     "exclusiveMinimum": 0
                 },
+                "bankShortfallFactor": {
+                    "default": 4,
+                    "description": "Drain and Heist: every hour they can't take from the unlock bank goes on the timer this many times over",
+                    "type": "number",
+                    "minimum": 0
+                },
                 "spinCostHours": {
                     "default": 4,
                     "description": "Price of a wheel spin, times the multiplier",

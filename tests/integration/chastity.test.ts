@@ -31,6 +31,7 @@ const config: ChastityConfig = {
 	multiplierDoublingDays: 3,
 	bankCapHours: 24,
 	removeCostRatio: 3,
+	bankShortfallFactor: 4,
 	spinCostHours: 4,
 	wheel: DEFAULT_WHEEL,
 };
@@ -80,7 +81,7 @@ describe('chastity repository', () => {
 	it('refuses a state write based on a stale version', async () => {
 		await db().collection('chastity_state').deleteMany({});
 		await createState(db(), state());
-		const notified = { timerZeroAt: null, bankDryAt: null };
+		const notified = { timerZeroAt: null, bankDryAt: null, hourLeftAt: null };
 		expect(await saveState(db(), 0, state({ timerSeconds: 1 }), notified)).toBe(true);
 		expect(await saveState(db(), 0, state({ timerSeconds: 2 }), notified)).toBe(false);
 		expect((await loadState(db()))?.timerSeconds).toBe(1);
@@ -154,6 +155,19 @@ describe('chastity game', () => {
 		expect(await game.memberRemove(ALICE, 1, null)).toMatchObject({ ok: false });
 	});
 
+	it('announces the last hour again only after the timer went back above an hour', async () => {
+		const game = await freshGame(() => 0, H / 2);
+		await saveState(db(), 0, state({ timerSeconds: H / 2 }), {
+			timerZeroAt: null,
+			bankDryAt: null,
+			hourLeftAt: T0,
+		});
+		await game.memberAdd(ALICE, 0.25, null);
+		expect((await loadState(db()))?.notified.hourLeftAt).toEqual(T0);
+		await game.memberAdd(ALICE, 2, null);
+		expect((await loadState(db()))?.notified.hourLeftAt).toBeNull();
+	});
+
 	it('applies two simultaneous adds without losing either', async () => {
 		const game = await freshGame(() => 0, H);
 		const results = await Promise.all([game.memberAdd(ALICE, 1, null), game.memberAdd(BOB, 1, null)]);
@@ -197,7 +211,11 @@ describe('chastity game', () => {
 	it('a windfall pays twice the spin price, past the cap', async () => {
 		const game = await freshGame(pick(2, 2), H);
 		// 24h on the timer: multiplier 1.3, so the spin costs 5.2h and pays 10.4h
-		await saveState(db(), 0, state({ timerSeconds: 24 * H }), { timerZeroAt: null, bankDryAt: null });
+		await saveState(db(), 0, state({ timerSeconds: 24 * H }), {
+			timerZeroAt: null,
+			bankDryAt: null,
+			hourLeftAt: null,
+		});
 		expect(await game.memberSpin(ALICE)).toMatchObject({
 			ok: true,
 			roll: { name: 'Windfall' },
@@ -216,13 +234,33 @@ describe('chastity game', () => {
 		});
 	});
 
-	it('a heist moves bank time onto the timer, and still adds the full amount from an empty bank', async () => {
+	it('a heist moves bank time onto the timer, plus 4× what the bank was short', async () => {
 		const game = await freshGame(pick(3, 1));
-		await saveState(db(), 0, state({ bankSeconds: H }), { timerZeroAt: null, bankDryAt: null });
+		await saveState(db(), 0, state({ bankSeconds: H }), { timerZeroAt: null, bankDryAt: null, hourLeftAt: null });
+		// Rolled 2h with 1h in the bank: 1h stolen, the timer gets 2h + 1h × 4
 		expect(await game.memberSpin(ALICE)).toMatchObject({
 			ok: true,
 			roll: { tier: 'legendary', name: 'Heist' },
-			event: { bankDeltaSeconds: -H, timerDeltaSeconds: 2 * H },
+			event: { bankDeltaSeconds: -H, timerDeltaSeconds: 6 * H },
+		});
+	});
+
+	it("a drain puts what it can't take on the timer 4× over, and only that", async () => {
+		const game = await freshGame(pick(3, 0));
+		// Empty bank: the 2h rolled all go on the timer × 4
+		expect(await game.memberSpin(ALICE)).toMatchObject({
+			roll: { name: 'Drain' },
+			event: { bankDeltaSeconds: 0, timerDeltaSeconds: 8 * H },
+		});
+		// A full bank: drained, the timer untouched (pick() rigs a single spin, so a fresh game)
+		const again = await freshGame(pick(3, 0));
+		await saveState(db(), 0, state({ bankSeconds: 10 * H }), {
+			timerZeroAt: null,
+			bankDryAt: null,
+			hourLeftAt: null,
+		});
+		expect(await again.memberSpin(BOB)).toMatchObject({
+			event: { bankDeltaSeconds: -2 * H, timerDeltaSeconds: 0 },
 		});
 	});
 

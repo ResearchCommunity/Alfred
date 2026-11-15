@@ -99,13 +99,14 @@ const noEvent = {
 } as const;
 
 /**
- * A notification is due again once things change back: the timer leaves zero, or the bank
- * holds time again while unlocked.
+ * A notification is due again once things change back: the timer leaves zero, goes back above
+ * an hour, or the bank holds time again while unlocked.
  */
 function notifiedAfter(stored: StoredState, next: GameState): Notified {
 	return {
 		timerZeroAt: next.timerSeconds > 0 ? null : stored.notified.timerZeroAt,
 		bankDryAt: next.mode === 'unlocked' && next.bankSeconds > 0 ? null : stored.notified.bankDryAt,
+		hourLeftAt: next.timerSeconds > SECONDS.HOUR ? null : stored.notified.hourLeftAt,
 	};
 }
 
@@ -187,7 +188,12 @@ export class Game {
 				// The price is set before the outcome applies, at the multiplier everyone sees right now
 				const factor = this.price(stored, project(stored, now).timerSeconds, now);
 				const priceSeconds = addPriceSeconds(this.config.spinCostHours, factor);
-				const { next, timerDeltaSeconds, bankDeltaSeconds } = applyRoll(stored, now, outcome);
+				const { next, timerDeltaSeconds, bankDeltaSeconds } = applyRoll(
+					stored,
+					now,
+					outcome,
+					this.config.bankShortfallFactor,
+				);
 				return {
 					priceSeconds,
 					creditSeconds:
@@ -487,24 +493,30 @@ export class Game {
 	}
 }
 
-/** A wheel outcome applied to the game; deltas are what actually changed (after clamping) */
+/**
+ * A wheel outcome applied to the game; deltas are what actually changed (after clamping). What
+ * Drain and Heist can't take from the unlock bank goes on the timer `shortfallFactor` times over.
+ */
 export function applyRoll(
 	state: GameState,
 	now: Date,
 	outcome: Roll,
+	shortfallFactor: number,
 ): { next: GameState; timerDeltaSeconds: number; bankDeltaSeconds: number } {
 	const seconds = outcome.minutes * 60;
 	const before = reanchor(state, now);
+	const shortfall = Math.round(Math.max(0, seconds - before.bankSeconds) * shortfallFactor);
 	let next: GameState;
 	if (outcome.effect === 'timer' || outcome.effect === 'refund') {
 		next = seconds >= 0 ? addTimer(before, now, seconds) : removeTimer(before, now, -seconds).state;
 	} else if (outcome.effect === 'happyHour') {
 		next = startHappyHour(before, now, seconds);
 	} else if (outcome.effect === 'bankDrain') {
-		next = adjustBank(before, now, -seconds);
+		const drained = adjustBank(before, now, -seconds);
+		next = shortfall > 0 ? addTimer(drained, now, shortfall) : drained;
 	} else if (outcome.effect === 'heist') {
-		// Takes what the bank has, but the timer always gets the full amount
-		next = addTimer(adjustBank(before, now, -seconds), now, seconds);
+		// Takes what the bank has, and the timer gets the full amount plus the shortfall
+		next = addTimer(adjustBank(before, now, -seconds), now, seconds + shortfall);
 	} else if (outcome.effect === 'bankBonus') {
 		next = adjustBank(before, now, seconds);
 	} else {

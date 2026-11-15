@@ -7,6 +7,8 @@ import { momentMessages } from './messages.ts';
 import { appendEvent, loadState, saveState } from './repository.ts';
 import { nextMoment } from './time.ts';
 
+const NOTIFIED_FIELD = { 'hour-left': 'hourLeftAt', 'timer-zero': 'timerZeroAt', 'bank-dry': 'bankDryAt' } as const;
+
 /** setTimeout can't wait longer than this; longer waits just check again then */
 const MAX_DELAY = 2 ** 31 - 1;
 /** After a failed check (database or Discord hiccup), try again this soon */
@@ -28,7 +30,8 @@ export async function notifyOwner(
 }
 
 /**
- * Posts when the timer runs out and when the bank runs dry while unlocked. One timeout for
+ * Posts when the timer is down to an hour, when it runs out, and when the bank runs dry while
+ * unlocked. One timeout for
  * the next moment, recomputed after every game change and at boot; a moment that passed
  * while the bot was offline is announced at boot, and only once (it's recorded in the state).
  */
@@ -100,10 +103,9 @@ export class Notifier {
 		}
 
 		// Record it first: if two checks race, only the one whose write wins announces it
-		const notified = {
-			...stored.notified,
-			[moment.kind === 'timer-zero' ? 'timerZeroAt' : 'bankDryAt']: moment.at,
-		};
+		const notified = { ...stored.notified, [NOTIFIED_FIELD[moment.kind]]: moment.at };
+		// Reaching zero also settles the hour mark: topping up a few minutes at zero isn't news
+		if (moment.kind === 'timer-zero') notified.hourLeftAt ??= moment.at;
 		if (!(await saveState(this.db, stored.version, stored, notified))) {
 			this.recheck = true;
 			return;
@@ -127,14 +129,14 @@ export class Notifier {
 		});
 
 		// The DM matters most: a failed channel post (missing permission, Discord hiccup) must not stop it
-		const messages = momentMessages(moment.kind, stored.mode, this.config.ownerId);
+		const messages = momentMessages(moment.kind, stored, this.config.ownerId, now);
 		try {
 			const channel = await this.client.channels.fetch(this.config.channelId);
 			if (channel?.isSendable()) await channel.send(messages.channel);
 		} catch (error) {
 			this.logger.warn({ err: error }, 'Could not post in the chastity channel');
 		}
-		await notifyOwner(this.client, this.config.ownerId, messages.dm, this.logger);
+		if (messages.dm) await notifyOwner(this.client, this.config.ownerId, messages.dm, this.logger);
 
 		// The topic and anything else watching shows the new situation (this also re-runs this check)
 		this.game.changed();

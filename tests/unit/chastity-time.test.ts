@@ -106,7 +106,7 @@ describe('transitions', () => {
 });
 
 describe('nextMoment', () => {
-	const none = { timerZeroAt: null, bankDryAt: null };
+	const none = { timerZeroAt: null, bankDryAt: null, hourLeftAt: null };
 
 	it('finds a timer-zero moment that passed while offline, but only once', () => {
 		expect(nextMoment(locked(), none, at(5))).toEqual({ kind: 'timer-zero', at: at(2) });
@@ -116,6 +116,17 @@ describe('nextMoment', () => {
 	it('finds when the bank runs dry while unlocked', () => {
 		const state = locked({ mode: 'unlocked', bankSeconds: H, timerSeconds: 5 * H });
 		expect(nextMoment(state, none, T0)).toEqual({ kind: 'bank-dry', at: at(1) });
+	});
+
+	it('marks the last hour once, and right away when the timer is already under it', () => {
+		// 2h on the timer: down to an hour at 1h, then zero at 2h
+		expect(nextMoment(locked(), none, T0)).toEqual({ kind: 'hour-left', at: at(1) });
+		expect(nextMoment(locked(), { ...none, hourLeftAt: at(1) }, T0)).toEqual({ kind: 'timer-zero', at: at(2) });
+		expect(nextMoment(locked({ timerSeconds: H / 2 }), none, T0)).toEqual({ kind: 'hour-left', at: T0 });
+	});
+
+	it("skips the last hour when the timer already ran out (it'd be stale)", () => {
+		expect(nextMoment(locked(), none, at(5))).toEqual({ kind: 'timer-zero', at: at(2) });
 	});
 
 	it('has nothing to say during an emergency', () => {

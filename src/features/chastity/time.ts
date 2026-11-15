@@ -165,9 +165,11 @@ export function removePriceSeconds(removedSeconds: number, ratio: number): numbe
 export interface Notified {
 	timerZeroAt: Date | null;
 	bankDryAt: Date | null;
+	/** Set once the timer dropped to an hour or less; cleared once it's back above an hour */
+	hourLeftAt: Date | null;
 }
 
-export type MomentKind = 'timer-zero' | 'bank-dry';
+export type MomentKind = 'hour-left' | 'timer-zero' | 'bank-dry';
 
 /** The earliest moment worth a notification that hasn't been sent yet, past or future */
 export function nextMoment(state: GameState, notified: Notified, now: Date): { kind: MomentKind; at: Date } | null {
@@ -176,6 +178,12 @@ export function nextMoment(state: GameState, notified: Notified, now: Date): { k
 	const moments: Array<{ kind: MomentKind; at: Date }> = [];
 	if (projection.timerZeroAt && !notified.timerZeroAt)
 		moments.push({ kind: 'timer-zero', at: projection.timerZeroAt });
+	// When the timer is down to an hour. Already there (time was removed): due right away. Already at
+	// zero: skipped, since "the timer ran out" says more.
+	if (projection.timerZeroAt && projection.timerSeconds > 0 && !notified.hourLeftAt) {
+		const hourLeftAt = plusSeconds(projection.timerZeroAt, -HOUR);
+		moments.push({ kind: 'hour-left', at: hourLeftAt > now ? hourLeftAt : now });
+	}
 	if (state.mode === 'unlocked' && projection.bankDryAt && !notified.bankDryAt) {
 		moments.push({ kind: 'bank-dry', at: projection.bankDryAt });
 	}

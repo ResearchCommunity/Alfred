@@ -158,6 +158,13 @@ const ChastitySchema = z
 			.describe('The add multiplier doubles with every this many days left on the timer'),
 		bankCapHours: Hours.default(24).describe("The owner's unlock bank stops growing at this many hours"),
 		removeCostRatio: z.number().positive().default(3).describe('Currency hours per hour removed'),
+		bankShortfallFactor: z
+			.number()
+			.min(0)
+			.default(4)
+			.describe(
+				"Drain and Heist: every hour they can't take from the unlock bank goes on the timer this many times over",
+			),
 		spinCostHours: z.number().min(0.1).default(4).describe('Price of a wheel spin, times the multiplier'),
 		wheel: WheelSchema.default(DEFAULT_WHEEL).describe('Wheel tiers with weights and outcomes'),
 	})

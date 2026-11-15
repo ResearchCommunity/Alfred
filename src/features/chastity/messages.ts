@@ -15,7 +15,7 @@ import type { ChastityConfig } from '../../lib/config.ts';
 import { formatCurrency, formatDuration, formatMultiplier, relativeTime } from './format.ts';
 import type { ActionResult, InfoView, SendResult } from './game.ts';
 import type { Board, GameEvent } from './repository.ts';
-import { addPriceSeconds, type Mode, type MomentKind } from './time.ts';
+import { addPriceSeconds, type GameState, type MomentKind, project } from './time.ts';
 import type { Effect, Roll } from './wheel.ts';
 
 // Everything the game posts. Components V2, no pings (members are named, never notified).
@@ -67,14 +67,20 @@ function describeRoll(roll: Roll, event: GameEvent, config: ChastityConfig): str
 	if (roll.effect === 'happyHour') return `adding time costs **half** for everyone for the next ${amount}`;
 	if (roll.effect === 'windfall')
 		return `**+${formatCurrency(event.creditSeconds, config.currencyName)}** for the spinner`;
-	if (roll.effect === 'bankDrain')
+	const shortfall = `×${config.bankShortfallFactor.toLocaleString('en-US')}`;
+	if (roll.effect === 'bankDrain') {
+		if (event.timerDeltaSeconds <= 0) return `**${bank} drained** from the unlock bank`;
 		return event.bankDeltaSeconds < 0
-			? `**${bank} drained** from the unlock bank`
-			: 'the unlock bank was already empty';
-	if (roll.effect === 'heist')
+			? `**${bank} drained** from the unlock bank, and what it couldn't take went on the timer ${shortfall} (${timer})`
+			: `the unlock bank was empty, so it all went on the timer ${shortfall} (${timer})`;
+	}
+	if (roll.effect === 'heist') {
+		if (event.timerDeltaSeconds <= -event.bankDeltaSeconds)
+			return `**${bank} stolen** from the unlock bank and put on the timer (${timer})`;
 		return event.bankDeltaSeconds < 0
-			? `**${bank} stolen** from the unlock bank and put on the timer (${timer})`
-			: `the unlock bank was empty, so it all went on the timer (${timer})`;
+			? `**${bank} stolen** from the unlock bank, and the timer got the rest ${shortfall} on top (${timer})`
+			: `the unlock bank was empty, so the timer got it ${shortfall} on top (${timer})`;
+	}
 	// bankBonus
 	return `**+${bank}** into the unlock bank`;
 }
@@ -153,9 +159,27 @@ export function ownerPost(result: Extract<ActionResult, { ok: true }>): Post {
 	return post('The game is back on.');
 }
 
-/** Channel post and owner DM for the moments the notifier watches */
-export function momentMessages(kind: MomentKind, mode: Mode, ownerId: string): { channel: Post; dm: Post } {
+/** Channel post and owner DM for the moments the notifier watches (the hour mark is channel-only) */
+export function momentMessages(
+	kind: MomentKind,
+	state: GameState,
+	ownerId: string,
+	now: Date,
+): { channel: Post; dm: Post | null } {
 	const owner = userMention(ownerId);
+	const { mode } = state;
+	if (kind === 'hour-left') {
+		const projection = project(state, now);
+		const paused = mode === 'unlocked' && projection.bankSeconds > 0;
+		return {
+			channel: post(
+				paused || !projection.timerZeroAt
+					? `### One hour left\nLess than an hour left on ${owner}'s timer. It's paused while they spend the unlock bank.`
+					: `### One hour left\nLess than an hour left on ${owner}'s timer. It runs out ${relativeTime(projection.timerZeroAt)}.`,
+			),
+			dm: null,
+		};
+	}
 	if (kind === 'timer-zero' && mode === 'unlocked') {
 		return {
 			channel: post(
@@ -291,8 +315,11 @@ function describeEffect(effect: Effect, config: ChastityConfig, multiplier: numb
 		return max < 0 ? `**−${range(-max, -min)}** off the timer` : `**+${range(min, max)}** on the timer`;
 	if (effect.kind === 'refund') return `**+${range(min, max)}** on the timer, and the spin is free`;
 	if (effect.kind === 'happyHour') return `Adding time costs **half** for everyone, for ${range(min, max)}`;
-	if (effect.kind === 'bankDrain') return `**${range(min, max)}** drained from the unlock bank`;
-	if (effect.kind === 'heist') return `**${range(min, max)}** stolen from the unlock bank and put on the timer`;
+	const shortfall = `**×${config.bankShortfallFactor.toLocaleString('en-US')}**`;
+	if (effect.kind === 'bankDrain')
+		return `**${range(min, max)}** drained from the unlock bank. Whatever it can't take goes on the timer ${shortfall}`;
+	if (effect.kind === 'heist')
+		return `**${range(min, max)}** stolen from the unlock bank and put on the timer. Whatever it can't take goes on the timer ${shortfall} on top`;
 	// bankBonus
 	return `**+${range(min, max)}** into the unlock bank`;
 }

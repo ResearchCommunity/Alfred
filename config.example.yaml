@@ -57,4 +57,4 @@ chastity:
     channelId: '000000000000000000'
     # Everything else has defaults (see config.schema.json): currencyName, allowancePerDayHours,
     # walletCapHours, startingBalanceHours, bankCapHours, multiplierDoublingDays, removeCostRatio,
-    # spinCostHours, wheel
+    # bankShortfallFactor, spinCostHours, wheel

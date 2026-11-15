@@ -26,7 +26,12 @@ const StoredStateSchema = z.object({
 	timerSeconds: Seconds,
 	bankSeconds: Seconds,
 	happyHourUntil: z.date().nullable(),
-	notified: z.object({ timerZeroAt: z.date().nullable(), bankDryAt: z.date().nullable() }),
+	notified: z.object({
+		timerZeroAt: z.date().nullable(),
+		bankDryAt: z.date().nullable(),
+		// Older states predate it
+		hourLeftAt: z.date().nullable().default(null),
+	}),
 });
 
 export type StoredState = z.infer<typeof StoredStateSchema>;
@@ -45,6 +50,7 @@ export const EVENT_TYPES = [
 	'relock',
 	'emergency-on',
 	'emergency-off',
+	'hour-left',
 	'timer-zero',
 	'bank-dry',
 	'set',
@@ -100,7 +106,7 @@ export async function createState(db: Db, state: GameState): Promise<boolean> {
 		_id: STATE_ID,
 		version: 0,
 		...stateFields(state),
-		notified: { timerZeroAt: null, bankDryAt: null },
+		notified: { timerZeroAt: null, bankDryAt: null, hourLeftAt: null },
 	});
 	try {
 		await states(db).insertOne(doc);

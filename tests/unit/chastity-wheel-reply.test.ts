@@ -13,6 +13,7 @@ const config: ChastityConfig = {
 	bankCapHours: 24,
 	multiplierDoublingDays: 3,
 	removeCostRatio: 3,
+	bankShortfallFactor: 4,
 	spinCostHours: 4,
 	wheel: DEFAULT_WHEEL,
 };
