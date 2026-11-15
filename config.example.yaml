@@ -56,5 +56,6 @@ chastity:
     # /chastity only works here, and game posts go here
     channelId: '000000000000000000'
     # Everything else has defaults (see config.schema.json): currencyName, allowancePerDayHours,
-    # walletCapHours, startingBalanceHours, bankCapHours, multiplierDoublingDays, removeCostRatio,
+    # walletCapHours, startingBalanceHours, bankCapHours, multiplierFlatHours,
+    # multiplierTargetDays, multiplierTarget, removeCostRatio,
     # bankShortfallFactor, spinCostHours, wheel

@@ -31,7 +31,9 @@ const config: ChastityConfig = {
 	allowancePerDayHours: 8,
 	walletCapHours: 24,
 	startingBalanceHours: 24,
-	multiplierDoublingDays: 3,
+	multiplierFlatHours: 24,
+	multiplierTargetDays: 14,
+	multiplierTarget: 24,
 	bankCapHours: 24,
 	removeCostRatio: 3,
 	bankShortfallFactor: 4,
@@ -142,18 +144,19 @@ describe('chastity game', () => {
 	it('charges hours × multiplier for adding time', async () => {
 		const game = await freshGame();
 		const result = await game.memberAdd(ALICE, 6, 'you know what you did');
-		// Charged at the multiplier before the add; the result shows the new one for the next add
-		expect(result).toMatchObject({ ok: true, multiplier: 2.1, balanceSeconds: 12 * H });
+		// Charged at the multiplier before the add (1.5x at 3 days); the result shows the new one
+		expect(result).toMatchObject({ ok: true, multiplier: 1.7, balanceSeconds: 15 * H });
 		expect(result.ok && result.event).toMatchObject({
-			multiplier: 2,
-			costSeconds: 12 * H,
+			multiplier: 1.5,
+			costSeconds: 9 * H,
 			timerDeltaSeconds: 6 * H,
 		});
 	});
 
 	it("charges nothing for what a member can't afford", async () => {
 		const game = await freshGame();
-		expect(await game.memberAdd(ALICE, 13, null)).toMatchObject({ ok: false, balanceSeconds: 24 * H });
+		// 17h at 1.5x would cost 25.5, one more than a full wallet
+		expect(await game.memberAdd(ALICE, 17, null)).toMatchObject({ ok: false, balanceSeconds: 24 * H });
 		expect(await loadWallet(db(), ALICE)).toBeNull();
 	});
 
@@ -207,9 +210,10 @@ describe('chastity game', () => {
 			rules: { spinCostHours: 4 },
 			state: { mode: 'locked' },
 			members: [
-				// m1 spun at 2.0x (8) and got 1 sent: 24 − 8 + 1
-				{ member: 'm1', balanceSeconds: 17 * H },
-				{ member: 'm2', balanceSeconds: 24 * H - 2 * 2 * H - H },
+				// m1 spun at 1.5x (6) and got 1 sent: 24 − 6 + 1
+				{ member: 'm1', balanceSeconds: 19 * H },
+				// m2 added 2h at 1.6x (3.2) and sent 1
+				{ member: 'm2', balanceSeconds: 24 * H - 3.2 * H - H },
 			],
 		});
 		expect(events.map((e) => [e.type, e.actor, e.target])).toEqual([
@@ -221,10 +225,10 @@ describe('chastity game', () => {
 		]);
 		expect(events[2]).toMatchObject({
 			rolledMinutes: 60,
-			balanceAfterSeconds: 16 * H,
+			balanceAfterSeconds: 18 * H,
 			timerAfterSeconds: 3 * 24 * H + H,
 		});
-		expect(events[3]).toMatchObject({ balanceAfterSeconds: 24 * H - 2 * 2 * H, bankAfterSeconds: 0 });
+		expect(events[3]).toMatchObject({ balanceAfterSeconds: 24 * H - 3.2 * H, bankAfterSeconds: 0 });
 		expect(events[3]).not.toHaveProperty('reason');
 	});
 
@@ -270,8 +274,8 @@ describe('chastity game', () => {
 		expect(await game.memberSpin(ALICE)).toMatchObject({
 			ok: true,
 			roll: { tier: 'common', name: 'Nudge' },
-			balanceSeconds: 16 * H,
-			event: { timerDeltaSeconds: H, multiplier: 2, costSeconds: 8 * H, creditSeconds: 0 },
+			balanceSeconds: 18 * H,
+			event: { timerDeltaSeconds: H, multiplier: 1.5, costSeconds: 6 * H, creditSeconds: 0 },
 		});
 	});
 
@@ -281,14 +285,14 @@ describe('chastity game', () => {
 			ok: true,
 			roll: { name: 'Refund' },
 			balanceSeconds: 24 * H,
-			event: { timerDeltaSeconds: H, creditSeconds: 8 * H },
+			event: { timerDeltaSeconds: H, creditSeconds: 6 * H },
 		});
 	});
 
 	it('a windfall pays twice the spin price, past the cap', async () => {
 		const game = await freshGame(pick(2, 2), H);
-		// 24h on the timer: multiplier 1.3, so the spin costs 5.2h and pays 10.4h
-		await saveState(db(), 0, state({ timerSeconds: 24 * H }), {
+		// 2 days on the timer: multiplier 1.1, so the spin costs 4.4h and pays 8.8h
+		await saveState(db(), 0, state({ timerSeconds: 2 * 24 * H }), {
 			timerZeroAt: null,
 			bankDryAt: null,
 			hourLeftAt: null,
@@ -296,18 +300,19 @@ describe('chastity game', () => {
 		expect(await game.memberSpin(ALICE)).toMatchObject({
 			ok: true,
 			roll: { name: 'Windfall' },
-			balanceSeconds: 24 * H - 5.2 * H + 10.4 * H,
-			event: { costSeconds: 5.2 * H, creditSeconds: 10.4 * H },
+			balanceSeconds: (24 * 60 - 264 + 528) * 60,
+			event: { costSeconds: 264 * 60, creditSeconds: 528 * 60 },
 		});
 	});
 
 	it('a happy hour halves the price of adding and spinning for everyone', async () => {
-		const game = await freshGame(pick(2, 1));
-		expect(await game.memberSpin(ALICE)).toMatchObject({ ok: true, roll: { name: 'Happy hour' }, multiplier: 1 });
-		expect(await game.memberSpin(BOB)).toMatchObject({ ok: true, event: { multiplier: 1, costSeconds: 4 * H } });
+		// Inside the flat first day: 1x, halved to 0.5x
+		const game = await freshGame(pick(2, 1), 12 * H);
+		expect(await game.memberSpin(ALICE)).toMatchObject({ ok: true, roll: { name: 'Happy hour' }, multiplier: 0.5 });
+		expect(await game.memberSpin(BOB)).toMatchObject({ ok: true, event: { multiplier: 0.5, costSeconds: 2 * H } });
 		expect(await game.memberAdd(BOB, 6, null)).toMatchObject({
 			ok: true,
-			event: { multiplier: 1, costSeconds: 6 * H },
+			event: { multiplier: 0.5, costSeconds: 3 * H },
 		});
 	});
 

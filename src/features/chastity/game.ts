@@ -502,7 +502,7 @@ export class Game {
 
 	/** The current multiplier for adding time, happy hour included */
 	private price(state: GameState, timerSeconds: number, now: Date): number {
-		return multiplier(timerSeconds, this.config.multiplierDoublingDays, activeHappyHour(state, now) !== null);
+		return multiplier(timerSeconds, this.config, activeHappyHour(state, now) !== null);
 	}
 
 	/** Tells listeners the game changed without an action (the notifier, when a moment passes) */

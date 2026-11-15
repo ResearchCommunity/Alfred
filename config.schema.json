@@ -305,11 +305,23 @@
                     "type": "number",
                     "minimum": 0
                 },
-                "multiplierDoublingDays": {
-                    "default": 3,
-                    "description": "The add multiplier doubles with every this many days left on the timer",
+                "multiplierFlatHours": {
+                    "default": 24,
+                    "description": "Adding costs 1× while the timer has at most this many hours left",
                     "type": "number",
-                    "minimum": 0.1
+                    "minimum": 0
+                },
+                "multiplierTargetDays": {
+                    "default": 14,
+                    "description": "Where the add multiplier reaches multiplierTarget; past the flat part it grows quadratically",
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                },
+                "multiplierTarget": {
+                    "default": 24,
+                    "description": "The add multiplier with multiplierTargetDays left on the timer",
+                    "type": "number",
+                    "minimum": 1
                 },
                 "bankCapHours": {
                     "default": 24,

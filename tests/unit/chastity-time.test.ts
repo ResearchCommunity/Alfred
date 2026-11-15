@@ -16,6 +16,7 @@ import {
 } from '../../src/features/chastity/time.ts';
 
 const H = 3600;
+const CURVE = { multiplierFlatHours: 24, multiplierTargetDays: 14, multiplierTarget: 24 };
 const T0 = new Date('2026-11-14T12:00:00Z');
 const at = (hours: number) => new Date(T0.getTime() + hours * H * 1000);
 
@@ -32,12 +33,13 @@ const locked = (overrides: Partial<GameState> = {}): GameState => ({
 describe('prices', () => {
 	it.each([
 		[0, 1],
-		[24 * H, 1.3],
-		[3 * 24 * H, 2],
-		[6 * 24 * H, 4],
-		[15 * 24 * H, 32],
+		[24 * H, 1],
+		[2 * 24 * H, 1.1],
+		[7 * 24 * H, 5.9],
+		[14 * 24 * H, 24],
+		[30 * 24 * H, 115.5],
 	])('multiplier with %i s left is %d', (seconds, expected) => {
-		expect(multiplier(seconds, 3)).toBe(expected);
+		expect(multiplier(seconds, CURVE)).toBe(expected);
 	});
 
 	it('prices adds at one multiplier and removals by what was removed', () => {
@@ -97,7 +99,8 @@ describe('transitions', () => {
 	});
 
 	it('halves the multiplier during a happy hour', () => {
-		expect(multiplier(3 * 24 * H, 3, true)).toBe(1);
+		expect(multiplier(14 * 24 * H, CURVE, true)).toBe(12);
+		expect(multiplier(24 * H, CURVE, true)).toBe(0.5);
 	});
 
 	it('refuses to unlock with an empty bank', () => {

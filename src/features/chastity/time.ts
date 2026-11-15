@@ -146,9 +146,22 @@ export function emergencyOff(state: GameState, now: Date): GameState {
 	return { ...next, mode: next.resumeMode ?? 'locked', resumeMode: null };
 }
 
-/** Price factor for adding time: doubles with every `doublingDays` left, halved during a happy hour, one decimal */
-export function multiplier(timerSeconds: number, doublingDays: number, happyHour = false): number {
-	const factor = 2 ** (timerSeconds / (doublingDays * DAY)) / (happyHour ? 2 : 1);
+/** The settings that shape the add multiplier (a ChastityConfig fits) */
+export interface MultiplierCurve {
+	multiplierFlatHours: number;
+	multiplierTargetDays: number;
+	multiplierTarget: number;
+}
+
+/**
+ * Price factor for adding time, one decimal: 1× up to the flat part, then growing with the
+ * square of the time past it, so it reaches the target at the target days. Halved during a
+ * happy hour.
+ */
+export function multiplier(timerSeconds: number, curve: MultiplierCurve, happyHour = false): number {
+	const flat = curve.multiplierFlatHours * HOUR;
+	const past = Math.max(0, timerSeconds - flat) / (curve.multiplierTargetDays * DAY - flat);
+	const factor = (1 + (curve.multiplierTarget - 1) * past ** 2) / (happyHour ? 2 : 1);
 	return Math.round(factor * 10) / 10;
 }
 

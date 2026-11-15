@@ -88,7 +88,7 @@ export async function exportGame(
 			mode: stored.mode,
 			timerSeconds: projection.timerSeconds,
 			bankSeconds: projection.bankSeconds,
-			multiplier: multiplier(projection.timerSeconds, config.multiplierDoublingDays, happyHourUntil !== null),
+			multiplier: multiplier(projection.timerSeconds, config, happyHourUntil !== null),
 			happyHourUntil,
 		};
 	}

@@ -151,11 +151,21 @@ const ChastitySchema = z
 		),
 		walletCapHours: Hours.default(24).describe('The trickle stops at this balance'),
 		startingBalanceHours: z.number().min(0).default(24).describe("A member's balance before their first action"),
-		multiplierDoublingDays: z
+		multiplierFlatHours: z
 			.number()
-			.min(0.1)
-			.default(3)
-			.describe('The add multiplier doubles with every this many days left on the timer'),
+			.min(0)
+			.default(24)
+			.describe('Adding costs 1× while the timer has at most this many hours left'),
+		multiplierTargetDays: z
+			.number()
+			.positive()
+			.default(14)
+			.describe('Where the add multiplier reaches multiplierTarget; past the flat part it grows quadratically'),
+		multiplierTarget: z
+			.number()
+			.min(1)
+			.default(24)
+			.describe('The add multiplier with multiplierTargetDays left on the timer'),
 		bankCapHours: Hours.default(24).describe("The owner's unlock bank stops growing at this many hours"),
 		removeCostRatio: z.number().positive().default(3).describe('Currency hours per hour removed'),
 		bankShortfallFactor: z
@@ -167,6 +177,10 @@ const ChastitySchema = z
 			),
 		spinCostHours: z.number().min(0.1).default(4).describe('Price of a wheel spin, times the multiplier'),
 		wheel: WheelSchema.default(DEFAULT_WHEEL).describe('Wheel tiers with weights and outcomes'),
+	})
+	.refine((game) => game.multiplierTargetDays * 24 > game.multiplierFlatHours, {
+		message: 'multiplierTargetDays must lie past multiplierFlatHours',
+		path: ['multiplierTargetDays'],
 	})
 	.describe("The chastity game: members control the owner's timer. Leave this section out to disable it.");
 
