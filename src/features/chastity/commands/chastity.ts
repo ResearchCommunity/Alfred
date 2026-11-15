@@ -1,11 +1,27 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
+import { setTimeout } from 'node:timers/promises';
 import { channelMention, InteractionContextType, MessageFlags } from 'discord.js';
+import type { ChastityConfig } from '../../../lib/config.ts';
+import type { ActionResult } from '../game.ts';
+import {
+	actionPost,
+	infoReply,
+	leaderboardPost,
+	legendaryDm,
+	rejection,
+	sendPost,
+	spinningPost,
+	wheelReply,
+	withImage,
+} from '../messages.ts';
 import { notifyOwner } from '../notifier.ts';
-import { actionPost, infoReply, leaderboardPost, legendaryDm, rejection, sendPost, wheelReply } from '../messages.ts';
 import { BOARDS, type Board, leaderboard } from '../repository.ts';
+import { renderSpin, SPIN_SECONDS } from '../spin-animation.ts';
 
 const MAX_REASON = 200;
+/** After the animation lands, before the result replaces it */
+const REVEAL_PAUSE_MS = 1000;
 
 const isBoard = (value: string): value is Board => (BOARDS as readonly string[]).includes(value);
 
@@ -167,7 +183,8 @@ export class ChastityCommand extends Command {
 			await interaction.reply(rejection(result, chastity));
 			return;
 		}
-		await this.post(interaction, actionPost(result, chastity));
+		if (result.roll) await this.spin(interaction, result, chastity);
+		else await this.post(interaction, actionPost(result, chastity));
 		if (result.roll?.tier === 'legendary') {
 			await notifyOwner(
 				this.container.client,
@@ -175,6 +192,47 @@ export class ChastityCommand extends Command {
 				legendaryDm(result, chastity),
 				this.container.pino,
 			);
+		}
+	}
+
+	/**
+	 * Plays the spin: the animation first, then the result once it has landed. The spin has
+	 * already happened, so anything going wrong here only costs the show: the result is posted
+	 * regardless.
+	 */
+	private async spin(
+		interaction: Command.ChatInputCommandInteraction<'cached'>,
+		result: Extract<ActionResult, { ok: true }>,
+		config: ChastityConfig,
+	): Promise<void> {
+		const { pino } = this.container;
+		const roll = result.roll;
+		if (!roll) return;
+		try {
+			// Rendering takes about a second, more than is safe inside Discord's 3-second window
+			await interaction.deferReply();
+		} catch (error) {
+			pino.warn({ err: error }, 'Chastity reply failed, posting to the channel instead');
+			if (interaction.channel?.isSendable()) await interaction.channel.send(actionPost(result, config));
+			return;
+		}
+
+		let still: Buffer | null = null;
+		try {
+			const rendered = await renderSpin(config.wheel, roll);
+			await interaction.editReply(withImage(spinningPost(result, config), 'spin.webp', rendered.animation));
+			still = rendered.still;
+			await setTimeout(SPIN_SECONDS * 1000 + REVEAL_PAUSE_MS);
+		} catch (error) {
+			pino.warn({ err: error }, 'Spin animation failed, showing the result right away');
+		}
+
+		const reveal = actionPost(result, config);
+		try {
+			await interaction.editReply(still ? withImage(reveal, 'spin.png', still) : { ...reveal, attachments: [] });
+		} catch (error) {
+			pino.warn({ err: error }, 'Spin reveal failed, posting to the channel instead');
+			if (interaction.channel?.isSendable()) await interaction.channel.send(actionPost(result, config));
 		}
 	}
 

@@ -1,10 +1,13 @@
 import {
 	ActionRowBuilder,
+	AttachmentBuilder,
 	ButtonBuilder,
 	ButtonStyle,
 	ContainerBuilder,
 	escapeMarkdown,
 	type InteractionReplyOptions,
+	MediaGalleryBuilder,
+	MediaGalleryItemBuilder,
 	MessageFlags,
 	SeparatorBuilder,
 	SeparatorSpacingSize,
@@ -118,6 +121,25 @@ export function actionPost(result: Extract<ActionResult, { ok: true }>, config: 
 		return post(`### ✨ Legendary pull!\n${who} spun the wheel (${cost}). ${outcome}\n${timerLine(result)}`, GOLD);
 	}
 	return post(`${who} spun the wheel (${cost}). ${outcome}\n${timerLine(result)}`);
+}
+
+/** Shown while the spin animation plays; says nothing about the outcome */
+export function spinningPost(result: Extract<ActionResult, { ok: true }>, config: ChastityConfig): Post {
+	const cost = formatCurrency(result.event.costSeconds, config.currencyName);
+	return post(`${userMention(result.event.actorId ?? '')} spun the wheel (${cost})…`);
+}
+
+/**
+ * A post with an image under its text. `attachments: []` drops whatever the message had
+ * attached before, so swapping the animation for the still leaves only the still.
+ */
+export function withImage(message: Post, name: string, data: Buffer) {
+	for (const container of message.components) {
+		container.addMediaGalleryComponents(
+			new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL(`attachment://${name}`)),
+		);
+	}
+	return { ...message, files: [new AttachmentBuilder(data, { name })], attachments: [] };
 }
 
 /** The owner's DM about a legendary pull */

@@ -24,6 +24,10 @@ RUN --mount=type=cache,target=/root/.yarn/berry/cache yarn workspaces focus --pr
 # ---- runtime: no compiler, no dev deps, no Yarn, non-root ----
 FROM node:${NODE_VERSION}-slim AS runtime
 WORKDIR /app
+# The wheel spin animation draws text; the slim image has no fonts at all
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends fontconfig-config fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
 ENV NODE_ENV=production \
     HTTP_HOST=0.0.0.0 \
     HTTP_PORT=3050 \
