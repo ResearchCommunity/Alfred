@@ -8,7 +8,7 @@ rotation-symmetric subjects don't work.
 ## Bundled pool (this folder)
 
 Lab photos from [Wikimedia Commons](https://commons.wikimedia.org) under CC0, public
-domain, CC BY or CC BY-SA licenses. They're the fallback for development, tests and CI,
+domain, CC BY or CC BY-SA licenses. They're the fallback for development and tests,
 used whenever no local pool is set up.
 
 ## Local pool (`puzzle-images/`, not in git)

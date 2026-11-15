@@ -25,7 +25,7 @@ yarn dev                           # compiles in watch mode and restarts the bot
 | `yarn dev`           | `tsc` watch mode and restarts the bot on every successful build  |
 | `yarn build`         | Compile `src/` to `dist/`                                        |
 | `yarn start`         | Run the compiled bot                                             |
-| `yarn check`         | Typecheck, lint, format check and tests (what CI runs)           |
+| `yarn check`         | Typecheck, lint, format check and tests                          |
 | `yarn lint`          | Oxlint with type-aware rules                                     |
 | `yarn format`        | Format everything with Oxfmt                                     |
 | `yarn test`          | Vitest                                                           |
