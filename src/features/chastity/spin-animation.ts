@@ -144,42 +144,229 @@ function layOut(wheel: Wheel, roll: Roll, random: () => number): Card[] {
 /** Fast at first, a long slow crawl at the end */
 const easeOut = (t: number) => 1 - (1 - t) ** 4;
 
-/**
- * Renders a spin that lands on `roll`: an animated WebP that plays once and holds its last
- * frame, and that last frame as a PNG (for the reveal, so nobody is left with a looping image).
- */
-export async function renderSpin(
-	wheel: Wheel,
-	roll: Roll,
-	random: () => number = Math.random,
-): Promise<{ animation: Buffer; still: Buffer }> {
+// --- Celebration: rare and legendary pulls, played right after the strip lands --------------
+
+interface Celebration {
+	seconds: number;
+	/** How much the card grows at its peak */
+	pop: number;
+	sparks: number;
+	stars: number;
+	rays: boolean;
+	flash: boolean;
+}
+
+const CELEBRATION: Partial<Record<Tier, Celebration>> = {
+	rare: { seconds: 1, pop: 0.08, sparks: 16, stars: 0, rays: false, flash: false },
+	legendary: { seconds: 1.5, pop: 0.12, sparks: 30, stars: 7, rays: true, flash: true },
+};
+
+interface Particle {
+	angle: number;
+	speed: number;
+	size: number;
+	life: number;
+	star: boolean;
+}
+
+function particles(celebration: Celebration, random: () => number): Particle[] {
+	return Array.from({ length: celebration.sparks + celebration.stars }, (_, i) => ({
+		angle: random() * Math.PI * 2,
+		speed: 140 + random() * 220,
+		size: 1.5 + random() * 2.5,
+		life: celebration.seconds * (0.55 + random() * 0.4),
+		star: i >= celebration.sparks,
+	}));
+}
+
+/** Where the winning card sits in a frame cropped at `left` */
+function winnerBox(left: number) {
+	const x = WIDTH / 2 + WINNER * STEP - left;
+	return { x, cx: x + CARD_W / 2, cy: HEIGHT / 2 };
+}
+
+/** One celebration frame, laid over the landed frame: rays, the popping card, ring, particles, flash */
+function celebrationSvg(card: Card, left: number, celebration: Celebration, parts: Particle[], t: number): string {
+	const { color } = TIER_STYLE[card.tier];
+	const { x, cx, cy } = winnerBox(left);
+	const progress = t / celebration.seconds;
+	const layers: string[] = [];
+
+	if (celebration.rays) {
+		// Fade in quickly, turn slowly, gone by the end
+		const opacity = Math.sin(Math.PI * Math.min(1, progress)) ** 0.7;
+		const turn = t * 30;
+		const rays = Array.from({ length: 12 }, (_, i) => {
+			const a = ((i * 30 + turn) * Math.PI) / 180;
+			const w = (4 * Math.PI) / 180;
+			const point = (angle: number) => `${cx + Math.cos(angle) * 420},${cy + Math.sin(angle) * 420}`;
+			return `<polygon points="${cx},${cy} ${point(a - w)} ${point(a + w)}"/>`;
+		}).join('');
+		layers.push(`<g fill="url(#rays)" opacity="${opacity.toFixed(3)}">${rays}</g>`);
+	}
+
+	// The card pops up and settles back by the halfway point
+	const scale = 1 + celebration.pop * Math.sin(Math.PI * Math.min(1, progress / 0.5));
+	layers.push(
+		`<g transform="translate(${cx} ${cy}) scale(${scale.toFixed(4)}) translate(${-cx} ${-cy})">${cardSvg(card, x, true)}</g>`,
+	);
+
+	// A ring spreading out from the card
+	const ring = Math.min(1, progress / 0.7);
+	if (ring < 1) {
+		layers.push(
+			`<circle cx="${cx}" cy="${cy}" r="${(60 + ring * 220).toFixed(1)}" fill="none" stroke="${color}" stroke-width="${(6 - ring * 5).toFixed(2)}" opacity="${(0.9 * (1 - ring)).toFixed(3)}"/>`,
+		);
+	}
+
+	for (const p of parts) {
+		if (t >= p.life) continue;
+		const px = cx + Math.cos(p.angle) * p.speed * t;
+		const py = cy + Math.sin(p.angle) * p.speed * t + 160 * t * t;
+		const opacity = (1 - t / p.life).toFixed(3);
+		layers.push(
+			p.star
+				? `<text x="${px.toFixed(1)}" y="${py.toFixed(1)}" text-anchor="middle" dominant-baseline="central" font-family="${FONT}" font-size="${(p.size * 5).toFixed(1)}" fill="${color}" opacity="${opacity}">✦</text>`
+				: `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${p.size.toFixed(2)}" fill="${color}" opacity="${opacity}"/><circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${(p.size * 0.45).toFixed(2)}" fill="#fff" opacity="${opacity}"/>`,
+		);
+	}
+
+	if (celebration.flash && t < 0.3) {
+		layers.push(
+			`<rect width="${WIDTH}" height="${HEIGHT}" fill="${color}" opacity="${(0.45 * (1 - t / 0.3)).toFixed(3)}"/>`,
+		);
+	}
+
+	return `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}"><defs>${GLOWS}
+		<radialGradient id="rays" gradientUnits="userSpaceOnUse" cx="${cx}" cy="${cy}" r="300">
+			<stop offset="0" stop-color="${color}" stop-opacity="0.26"/>
+			<stop offset="1" stop-color="${color}" stop-opacity="0"/>
+		</radialGradient></defs>${layers.join('')}</svg>`;
+}
+
+// --- Glint: the result image of a rare or legendary pull, looping forever ---------------------
+
+const GLINT_SWEEP_FRAMES = 15;
+const GLINT_CYCLE_MS = 3000;
+const SPARKLE_FRAMES = 12;
+/** Where a legendary card's sparkles twinkle, relative to the card */
+const SPARKLES = [
+	{ x: 22, y: 46, phase: 0 },
+	{ x: 104, y: 38, phase: 0.33 },
+	{ x: 92, y: 112, phase: 0.66 },
+];
+
+function glintSvg(card: Card, left: number, sweep: number | null, twinkle: number | null): string {
+	const { x } = winnerBox(left);
+	const layers: string[] = [];
+	if (sweep !== null) {
+		// A soft diagonal streak crossing the card face
+		const bandX = x - 90 + sweep * (CARD_W + 150);
+		layers.push(
+			`<g clip-path="url(#card)"><rect x="${bandX.toFixed(1)}" y="${CARD_TOP - 40}" width="56" height="${CARD_H + 80}" fill="url(#streak)" transform="skewX(-22)" transform-origin="${(bandX + 28).toFixed(1)} ${HEIGHT / 2}"/></g>`,
+		);
+	}
+	if (twinkle !== null && card.tier === 'legendary') {
+		for (const s of SPARKLES) {
+			const opacity = Math.max(0, Math.sin(Math.PI * 2 * (twinkle + s.phase))) * 0.95;
+			if (opacity <= 0.01) continue;
+			layers.push(
+				`<text x="${x + s.x}" y="${CARD_TOP + s.y}" text-anchor="middle" dominant-baseline="central" font-family="${FONT}" font-size="13" fill="#fff6d1" opacity="${opacity.toFixed(3)}">✦</text>`,
+			);
+		}
+	}
+	return `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}"><defs>
+		<clipPath id="card"><rect x="${x}" y="${CARD_TOP}" width="${CARD_W}" height="${CARD_H}" rx="10"/></clipPath>
+		<linearGradient id="streak" x1="0" x2="1">
+			<stop offset="0" stop-color="#fff" stop-opacity="0"/>
+			<stop offset="0.5" stop-color="#fff" stop-opacity="0.42"/>
+			<stop offset="1" stop-color="#fff" stop-opacity="0"/>
+		</linearGradient></defs>${layers.join('')}</svg>`;
+}
+
+async function renderGlint(base: Buffer, card: Card, left: number, marker: Buffer): Promise<Buffer> {
+	const frame = (sweep: number | null, twinkle: number | null) =>
+		sharp(base)
+			.composite([{ input: Buffer.from(glintSvg(card, left, sweep, twinkle)) }, { input: marker }])
+			.png()
+			.toBuffer();
+	const sweepMs = 1000 / FPS;
+	const restMs = GLINT_CYCLE_MS - GLINT_SWEEP_FRAMES * sweepMs;
+	// Legendary sparkles twinkle between sweeps; a rare card just rests
+	const rest = card.tier === 'legendary' ? SPARKLE_FRAMES : 1;
+	const frames = await Promise.all([
+		...Array.from({ length: GLINT_SWEEP_FRAMES }, (_, i) => frame(i / (GLINT_SWEEP_FRAMES - 1), null)),
+		...Array.from({ length: rest }, (_, i) => frame(null, rest === 1 ? null : i / rest)),
+	]);
+	const delay = frames.map((_, i) => (i < GLINT_SWEEP_FRAMES ? sweepMs : restMs / rest));
+	return sharp(frames, { join: { animated: true } })
+		.webp({ delay, loop: 0, quality: 85, effort: 4 })
+		.toBuffer();
+}
+
+// --- The spin --------------------------------------------------------------------------------
+
+export interface RenderedSpin {
+	/** The spin, plus the celebration on a rare or legendary pull; plays once */
+	animation: Buffer;
+	/** How long `animation` takes to play out, for timing the reveal */
+	durationMs: number;
+	/** What the result shows: the final frame, glinting forever on a rare or legendary pull */
+	result: { name: string; data: Buffer };
+}
+
+/** Renders a spin that lands on `roll` */
+export async function renderSpin(wheel: Wheel, roll: Roll, random: () => number = Math.random): Promise<RenderedSpin> {
 	const cards = layOut(wheel, roll, random);
+	const winner = cards[WINNER];
+	if (!winner) throw new Error('No winning card');
 	// Stops somewhere inside the winning card, not always dead center
 	const end = WINNER * STEP + CARD_W / 2 + (random() - 0.5) * CARD_W * 0.7;
+	const left = Math.round(end);
 	const [moving, landed, marker] = await Promise.all([
 		drawStrip(cards, false),
 		drawStrip(cards, true),
 		drawOverlay(),
 	]);
 
-	const frame = (strip: Buffer, offset: number) =>
+	const crop = (strip: Buffer, offset: number, layers: Buffer[] = []) =>
 		sharp(strip)
 			.extract({ left: Math.round(offset), top: 0, width: WIDTH, height: HEIGHT })
-			.composite([{ input: marker }])
+			.composite([...layers.map((input) => ({ input })), { input: marker }])
 			.png()
 			.toBuffer();
-	const count = SPIN_SECONDS * FPS;
+
+	const spinCount = SPIN_SECONDS * FPS;
+	const celebration = CELEBRATION[roll.tier];
+	const parts = celebration ? particles(celebration, random) : [];
+	const celebrationCount = celebration ? Math.round(celebration.seconds * FPS) : 0;
 	const frames = await Promise.all([
-		...Array.from({ length: count }, (_, i) => frame(moving, easeOut(i / count) * end)),
-		frame(landed, end),
+		...Array.from({ length: spinCount }, (_, i) => crop(moving, easeOut(i / spinCount) * end)),
+		...Array.from({ length: celebrationCount }, (_, i) =>
+			crop(landed, left, [Buffer.from(celebrationSvg(winner, left, celebration!, parts, i / FPS))]),
+		),
+		crop(landed, left),
 	]);
 	const still = frames.at(-1);
 	if (!still) throw new Error('No frames rendered');
 
 	// The last frame stays up for a minute, in case a client loops the animation anyway
-	const delay = frames.map((_, i) => (i < count ? 1000 / FPS : 60_000));
+	const playing = spinCount + celebrationCount;
+	const delay = frames.map((_, i) => (i < playing ? 1000 / FPS : 60_000));
 	const animation = await sharp(frames, { join: { animated: true } })
 		.webp({ delay, loop: 1, quality: 82, effort: 4 })
 		.toBuffer();
-	return { animation, still };
+
+	const result = celebration
+		? {
+				name: 'spin.webp',
+				data: await renderGlint(
+					await sharp(landed).extract({ left, top: 0, width: WIDTH, height: HEIGHT }).png().toBuffer(),
+					winner,
+					left,
+					marker,
+				),
+			}
+		: { name: 'spin.png', data: still };
+	return { animation, durationMs: (playing * 1000) / FPS, result };
 }

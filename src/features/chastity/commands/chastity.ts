@@ -17,7 +17,7 @@ import {
 } from '../messages.ts';
 import { notifyOwner } from '../notifier.ts';
 import { BOARDS, type Board, leaderboard } from '../repository.ts';
-import { renderSpin, SPIN_SECONDS } from '../spin-animation.ts';
+import { type RenderedSpin, renderSpin } from '../spin-animation.ts';
 
 const MAX_REASON = 200;
 /** After the animation lands, before the result replaces it */
@@ -217,19 +217,21 @@ export class ChastityCommand extends Command {
 			return;
 		}
 
-		let still: Buffer | null = null;
+		let image: RenderedSpin['result'] | null = null;
 		try {
 			const rendered = await renderSpin(config.wheel, roll);
 			await interaction.editReply(withImage(spinningPost(result, config), 'spin.webp', rendered.animation));
-			still = rendered.still;
-			await setTimeout(SPIN_SECONDS * 1000 + REVEAL_PAUSE_MS);
+			image = rendered.result;
+			await setTimeout(rendered.durationMs + REVEAL_PAUSE_MS);
 		} catch (error) {
 			pino.warn({ err: error }, 'Spin animation failed, showing the result right away');
 		}
 
 		const reveal = actionPost(result, config);
 		try {
-			await interaction.editReply(still ? withImage(reveal, 'spin.png', still) : { ...reveal, attachments: [] });
+			await interaction.editReply(
+				image ? withImage(reveal, image.name, image.data) : { ...reveal, attachments: [] },
+			);
 		} catch (error) {
 			pino.warn({ err: error }, 'Spin reveal failed, posting to the channel instead');
 			if (interaction.channel?.isSendable()) await interaction.channel.send(actionPost(result, config));
