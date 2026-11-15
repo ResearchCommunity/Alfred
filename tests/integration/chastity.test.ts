@@ -194,12 +194,15 @@ describe('chastity game', () => {
 		});
 	});
 
-	it('a windfall pays the spinner past the cap', async () => {
+	it('a windfall pays twice the spin price, past the cap', async () => {
 		const game = await freshGame(pick(2, 2), H);
+		// 24h on the timer: multiplier 1.3, so the spin costs 5.2h and pays 10.4h
+		await saveState(db(), 0, state({ timerSeconds: 24 * H }), { timerZeroAt: null, bankDryAt: null });
 		expect(await game.memberSpin(ALICE)).toMatchObject({
 			ok: true,
 			roll: { name: 'Windfall' },
-			balanceSeconds: 28 * H,
+			balanceSeconds: 24 * H - 5.2 * H + 10.4 * H,
+			event: { costSeconds: 5.2 * H, creditSeconds: 10.4 * H },
 		});
 	});
 

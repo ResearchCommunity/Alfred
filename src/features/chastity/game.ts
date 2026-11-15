@@ -193,7 +193,7 @@ export class Game {
 						outcome.effect === 'refund'
 							? priceSeconds
 							: outcome.effect === 'windfall'
-								? outcome.minutes * 60
+								? Math.round(priceSeconds * (outcome.times ?? 0))
 								: 0,
 					next,
 					event: {

@@ -424,8 +424,7 @@
                                     "weight": 2,
                                     "effect": {
                                         "kind": "windfall",
-                                        "minMinutes": 480,
-                                        "maxMinutes": 480
+                                        "times": 2
                                     }
                                 }
                             ]
@@ -499,37 +498,59 @@
                                             "exclusiveMinimum": 0
                                         },
                                         "effect": {
-                                            "type": "object",
-                                            "properties": {
-                                                "kind": {
-                                                    "type": "string",
-                                                    "enum": [
-                                                        "timer",
-                                                        "refund",
-                                                        "happyHour",
-                                                        "windfall",
-                                                        "bankDrain",
-                                                        "heist",
-                                                        "bankBonus"
-                                                    ]
+                                            "anyOf": [
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "kind": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "timer",
+                                                                "refund",
+                                                                "happyHour",
+                                                                "bankDrain",
+                                                                "heist",
+                                                                "bankBonus"
+                                                            ]
+                                                        },
+                                                        "minMinutes": {
+                                                            "type": "integer",
+                                                            "minimum": -9007199254740991,
+                                                            "maximum": 9007199254740991
+                                                        },
+                                                        "maxMinutes": {
+                                                            "type": "integer",
+                                                            "minimum": -9007199254740991,
+                                                            "maximum": 9007199254740991
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "kind",
+                                                        "minMinutes",
+                                                        "maxMinutes"
+                                                    ],
+                                                    "additionalProperties": false
                                                 },
-                                                "minMinutes": {
-                                                    "type": "integer",
-                                                    "minimum": -9007199254740991,
-                                                    "maximum": 9007199254740991
-                                                },
-                                                "maxMinutes": {
-                                                    "type": "integer",
-                                                    "minimum": -9007199254740991,
-                                                    "maximum": 9007199254740991
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "kind": {
+                                                            "type": "string",
+                                                            "const": "windfall"
+                                                        },
+                                                        "times": {
+                                                            "type": "number",
+                                                            "exclusiveMinimum": 0,
+                                                            "description": "Payout as a multiple of the spin's price"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "kind",
+                                                        "times"
+                                                    ],
+                                                    "additionalProperties": false
                                                 }
-                                            },
-                                            "required": [
-                                                "kind",
-                                                "minMinutes",
-                                                "maxMinutes"
-                                            ],
-                                            "additionalProperties": false
+                                            ]
                                         }
                                     },
                                     "required": [

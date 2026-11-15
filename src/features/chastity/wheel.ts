@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-// The wheel: a flat-priced gamble whose outcomes ignore the multiplier. From the spinner's
-// side, adding time is winning and removing it is a backfire. Only legendary outcomes may
+// The wheel: a gamble priced at the multiplier, whose time outcomes ignore it. From the
+// spinner's side, adding time is winning and removing it is a backfire. Only legendary outcomes may
 // touch the owner's bank. Imported by lib/config.ts, so it must not import it.
 
 export const TIERS = ['common', 'uncommon', 'rare', 'legendary'] as const;
@@ -11,7 +11,8 @@ export type Tier = (typeof TIERS)[number];
  * - timer: ± time on the timer (negative = backfire)
  * - refund: + time on the timer, and the spinner gets the spin's price back
  * - happyHour: adding costs half for everyone, for this many minutes
- * - windfall: the spinner gets this much currency, even past the cap
+ * - windfall: the spinner gets `times` the spin's price, even past the cap (the price follows
+ *   the multiplier, so a fixed amount would stop being a win)
  * - bankDrain: time out of the owner's bank
  * - heist: time out of the owner's bank and onto the timer (the timer gets the full amount)
  * - bankBonus: time into the owner's bank
@@ -21,9 +22,9 @@ export type EffectKind = (typeof EFFECTS)[number];
 
 const BANK_EFFECTS: ReadonlySet<EffectKind> = new Set(['bankDrain', 'heist', 'bankBonus']);
 
-const EffectSchema = z
+const RangeEffectSchema = z
 	.strictObject({
-		kind: z.enum(EFFECTS),
+		kind: z.enum(EFFECTS.filter((kind) => kind !== 'windfall')),
 		minMinutes: z.number().int(),
 		maxMinutes: z.number().int(),
 	})
@@ -32,6 +33,13 @@ const EffectSchema = z
 		(effect) => effect.kind === 'timer' || effect.minMinutes > 0,
 		'Only timer outcomes may be negative; give the others positive amounts',
 	);
+
+const WindfallEffectSchema = z.strictObject({
+	kind: z.literal('windfall'),
+	times: z.number().positive().describe("Payout as a multiple of the spin's price"),
+});
+
+const EffectSchema = z.union([RangeEffectSchema, WindfallEffectSchema]);
 
 export type Effect = z.infer<typeof EffectSchema>;
 
@@ -59,11 +67,13 @@ export const WheelSchema = z
 
 export type Wheel = z.infer<typeof WheelSchema>;
 
-const outcome = (name: string, weight: number, kind: EffectKind, minMinutes: number, maxMinutes = minMinutes) => ({
-	name,
-	weight,
-	effect: { kind, minMinutes, maxMinutes },
-});
+const outcome = (
+	name: string,
+	weight: number,
+	kind: Exclude<EffectKind, 'windfall'>,
+	minMinutes: number,
+	maxMinutes = minMinutes,
+) => ({ name, weight, effect: { kind, minMinutes, maxMinutes } });
 
 /** Starting defaults, meant to be tuned through config. Weights within a tier are the overall %. */
 export const DEFAULT_WHEEL: Wheel = [
@@ -91,7 +101,7 @@ export const DEFAULT_WHEEL: Wheel = [
 		outcomes: [
 			outcome('Jackpot', 5, 'timer', 720, 1440),
 			outcome('Happy hour', 5, 'happyHour', 60),
-			outcome('Windfall', 2, 'windfall', 480),
+			{ name: 'Windfall', weight: 2, effect: { kind: 'windfall', times: 2 } },
 		],
 	},
 	{
@@ -109,8 +119,10 @@ export interface Roll {
 	tier: Tier;
 	name: string;
 	effect: EffectKind;
-	/** Whole minutes; only `timer` can be negative (a backfire) */
+	/** Whole minutes; only `timer` can be negative (a backfire). 0 for a windfall */
 	minutes: number;
+	/** Windfall only: the payout as a multiple of the spin's price */
+	times?: number;
 }
 
 function pick<T extends { weight: number }>(items: readonly T[], random: () => number): T {
@@ -129,6 +141,8 @@ function pick<T extends { weight: number }>(items: readonly T[], random: () => n
 export function roll(wheel: Wheel, random: () => number): Roll {
 	const tier = pick(wheel, random);
 	const { name, effect } = pick(tier.outcomes, random);
+	if (effect.kind === 'windfall')
+		return { tier: tier.tier, name, effect: effect.kind, minutes: 0, times: effect.times };
 	const minutes = effect.minMinutes + Math.floor(random() * (effect.maxMinutes - effect.minMinutes + 1));
 	return { tier: tier.tier, name, effect: effect.kind, minutes: Math.min(minutes, effect.maxMinutes) };
 }

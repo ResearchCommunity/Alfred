@@ -277,16 +277,19 @@ function range(minMinutes: number, maxMinutes: number): string {
 	return low === high ? low : `${low} to ${high}`;
 }
 
-function describeEffect(effect: Effect, config: ChastityConfig): string {
+function describeEffect(effect: Effect, config: ChastityConfig, multiplier: number | null): string {
+	if (effect.kind === 'windfall') {
+		const now =
+			multiplier === null
+				? ''
+				: `, right now ${formatCurrency(Math.round(spinPriceSeconds(config, multiplier) * effect.times), config.currencyName)}`;
+		return `**${effect.times.toLocaleString('en-US')}× the spin's price** for the spinner${now}, even past the cap`;
+	}
 	const { minMinutes: min, maxMinutes: max } = effect;
 	if (effect.kind === 'timer')
 		return max < 0 ? `**−${range(-max, -min)}** off the timer` : `**+${range(min, max)}** on the timer`;
 	if (effect.kind === 'refund') return `**+${range(min, max)}** on the timer, and the spin is free`;
 	if (effect.kind === 'happyHour') return `Adding time costs **half** for everyone, for ${range(min, max)}`;
-	if (effect.kind === 'windfall')
-		return min === max
-			? `**+${formatCurrency(min * 60, config.currencyName)}** for the spinner, even past the cap`
-			: `**+${formatCurrency(min * 60, '')}to ${formatCurrency(max * 60, config.currencyName)}** for the spinner, even past the cap`;
 	if (effect.kind === 'bankDrain') return `**${range(min, max)}** drained from the unlock bank`;
 	if (effect.kind === 'heist') return `**${range(min, max)}** stolen from the unlock bank and put on the timer`;
 	// bankBonus
@@ -316,7 +319,7 @@ export function wheelReply(config: ChastityConfig, multiplier: number | null): I
 				: `### ${TIER_LABEL[tier.tier]} · ${percent(tierShare)}`;
 		const lines = tier.outcomes.map(
 			(outcome) =>
-				`**${escapeMarkdown(outcome.name)}** · ${percent((tierShare * outcome.weight) / outcomeTotal)}\n${describeEffect(outcome.effect, config)}`,
+				`**${escapeMarkdown(outcome.name)}** · ${percent((tierShare * outcome.weight) / outcomeTotal)}\n${describeEffect(outcome.effect, config, multiplier)}`,
 		);
 		container
 			.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small))

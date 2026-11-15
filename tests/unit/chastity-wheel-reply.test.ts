@@ -28,7 +28,7 @@ describe('wheelReply', () => {
 		expect(text).toContain('**Drain** · 1.5%');
 		expect(text).toContain('**Mercy** · 0.5%');
 		expect(text).toContain('**−1h to 3h** off the timer');
-		expect(text).toContain('**+8 dubloons** for the spinner');
+		expect(text).toContain("**2× the spin's price** for the spinner, right now 16 dubloons");
 	});
 
 	it('shows the tier chances and the spin price', () => {
