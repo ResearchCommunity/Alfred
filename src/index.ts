@@ -10,6 +10,7 @@ import { loadConfig } from './lib/config.ts';
 import { connectDatabase } from './lib/database.ts';
 import { type Env, parseEnv } from './lib/env.ts';
 import { Game } from './features/chastity/game.ts';
+import { recordRules } from './features/chastity/export.ts';
 import { ensureIndexes as ensureChastityIndexes } from './features/chastity/repository.ts';
 import { grantAccess } from './features/onboarding/grant.ts';
 import { resolveImagePool } from './features/onboarding/puzzle.ts';
@@ -73,7 +74,11 @@ try {
 	logger.info({ database: env.DATABASE_NAME }, 'Connected to database');
 
 	container.chastity = config.chastity ? new Game(database.db, config.chastity) : null;
-	if (config.chastity) await ensureChastityIndexes(database.db);
+	if (config.chastity) {
+		await ensureChastityIndexes(database.db);
+		// The event log notes every change to the rules, so an export knows which applied when
+		await recordRules(database.db, config.chastity);
+	}
 
 	// Single-guild bot: register slash commands to the guild (instant) rather than globally,
 	// and overwrite Discord's copy whenever our definitions differ.

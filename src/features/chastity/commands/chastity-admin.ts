@@ -1,6 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { InteractionContextType, MessageFlags, PermissionFlagsBits } from 'discord.js';
+import { AttachmentBuilder, InteractionContextType, MessageFlags, PermissionFlagsBits, userMention } from 'discord.js';
+import { exportGame } from '../export.ts';
 import { ownerPost, resetConfirmation } from '../messages.ts';
 import { SECONDS } from '../time.ts';
 
@@ -57,6 +58,9 @@ export class ChastityAdminCommand extends Command {
 						.addBooleanOption((o) =>
 							o.setName('everything').setDescription('Also wipe all balances and leaderboards'),
 						),
+				)
+				.addSubcommand((sub) =>
+					sub.setName('export').setDescription('Download the game history (pseudonymized) for rebalancing'),
 				)
 				.addSubcommand((sub) => sub.setName('unlock').setDescription('Unlock, spending from the unlock bank'))
 				.addSubcommand((sub) => sub.setName('relock').setDescription('Lock up again'))
@@ -117,6 +121,23 @@ export class ChastityAdminCommand extends Command {
 					...(bankHours !== null && { bankSeconds: Math.round(bankHours * 60) * 60 }),
 				});
 				break;
+			}
+			case 'export': {
+				if (interaction.user.id !== chastity.ownerId) {
+					await interaction.reply({
+						content: `Only ${userMention(chastity.ownerId)} can do that.`,
+						flags: MessageFlags.Ephemeral,
+						allowedMentions: { parse: [] },
+					});
+					return;
+				}
+				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+				const file = await exportGame(this.container.db, chastity);
+				await interaction.editReply({
+					content: 'The game history, members pseudonymized.',
+					files: [new AttachmentBuilder(file.data, { name: file.name })],
+				});
+				return;
 			}
 			case 'reset': {
 				const everything = interaction.options.getBoolean('everything') ?? false;

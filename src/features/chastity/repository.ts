@@ -55,6 +55,7 @@ export const EVENT_TYPES = [
 	'bank-dry',
 	'set',
 	'reset',
+	'config',
 ] as const;
 
 const GameEventSchema = z.object({
@@ -75,6 +76,16 @@ const GameEventSchema = z.object({
 	effect: z.string().nullable(),
 	/** The wheel outcome's display name */
 	outcome: z.string().nullable(),
+	// For rebalancing (see export.ts). Events from before these existed have them as null.
+	/** The timer and unlock bank right after the event; null when it didn't touch the game */
+	timerAfterSeconds: Seconds.nullable().default(null),
+	bankAfterSeconds: Seconds.nullable().default(null),
+	/** The acting member's balance right after (member actions and sends) */
+	balanceAfterSeconds: z.number().int().nullable().default(null),
+	/** What the wheel rolled, before anything clamped it (a Drain on a short bank) */
+	rolledMinutes: z.number().int().nullable().default(null),
+	/** `config` events: the game's rules from then on */
+	rules: z.record(z.string(), z.unknown()).nullable().default(null),
 });
 
 export type GameEvent = z.infer<typeof GameEventSchema>;
@@ -184,6 +195,24 @@ export function validateEvent(event: GameEvent): GameEvent {
 
 export async function appendEvent(db: Db, event: GameEvent): Promise<void> {
 	await events(db).insertOne(GameEventSchema.parse(event));
+}
+
+/** The whole log, oldest first */
+export function allEvents(db: Db): AsyncIterable<GameEvent> {
+	return events(db)
+		.find({}, { projection: { _id: 0 } })
+		.sort({ at: 1, _id: 1 });
+}
+
+/** The rules recorded last, to tell whether the config changed since */
+export async function lastRules(db: Db): Promise<Record<string, unknown> | null> {
+	const event = await events(db).findOne({ type: 'config' }, { sort: { at: -1, _id: -1 } });
+	return event?.rules ?? null;
+}
+
+export async function allWallets(db: Db): Promise<Array<{ userId: string } & Wallet>> {
+	const docs = await wallets(db).find({}).toArray();
+	return docs.map(({ _id, balanceSeconds, anchoredAt }) => ({ userId: _id, balanceSeconds, anchoredAt }));
 }
 
 export const BOARDS = ['added', 'removed', 'spent', 'legendary'] as const;

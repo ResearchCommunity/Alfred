@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
+import { exportGame, recordRules } from '../../src/features/chastity/export.ts';
 import { Game } from '../../src/features/chastity/game.ts';
 import {
 	appendEvent,
@@ -17,6 +19,7 @@ import { useTestDatabase } from './helpers.ts';
 
 const H = 3600;
 const OWNER = '100000000000000001';
+const Line = z.record(z.string(), z.unknown());
 const ALICE = '200000000000000002';
 const BOB = '300000000000000003';
 const T0 = new Date('2026-11-14T12:00:00Z');
@@ -61,6 +64,11 @@ const event = (actorId: string, timerDeltaSeconds: number, source: 'member' | 'w
 	outcome: null,
 	creditSeconds: 0,
 	targetId: null,
+	timerAfterSeconds: null,
+	bankAfterSeconds: null,
+	balanceAfterSeconds: null,
+	rolledMinutes: null,
+	rules: null,
 });
 
 /** Random numbers that pick the given tier and outcome (by index), then the low end of the range */
@@ -166,6 +174,58 @@ describe('chastity game', () => {
 		expect((await loadState(db()))?.notified.hourLeftAt).toEqual(T0);
 		await game.memberAdd(ALICE, 2, null);
 		expect((await loadState(db()))?.notified.hourLeftAt).toBeNull();
+	});
+
+	it('records the rules once, and again only when they change', async () => {
+		await freshGame();
+		expect(await recordRules(db(), config, T0)).toBe(true);
+		expect(await recordRules(db(), config, T0)).toBe(false);
+		expect(await recordRules(db(), { ...config, spinCostHours: 5 }, T0)).toBe(true);
+	});
+
+	it('exports the history with pseudonyms, without reasons, and with what things were after each event', async () => {
+		const game = await freshGame(pick(0, 0));
+		await recordRules(db(), config, T0);
+		await game.memberSpin(BOB);
+		await game.memberAdd(ALICE, 2, 'a secret reason');
+		await game.memberSend(ALICE, BOB, H, 'also secret');
+
+		const { name, data } = await exportGame(db(), config, T0);
+		expect(name).toBe('chastity-export-2026-11-14.jsonl');
+		const text = data.toString();
+		// No Discord IDs, no reasons
+		expect(text).not.toMatch(/\d{17,20}/);
+		expect(text).not.toContain('secret');
+
+		const [header, ...events] = text
+			.trimEnd()
+			.split('\n')
+			.map((line) => Line.parse(JSON.parse(line)));
+		expect(header).toMatchObject({
+			format: 'alfred-chastity-export',
+			version: 1,
+			rules: { spinCostHours: 4 },
+			state: { mode: 'locked' },
+			members: [
+				// m1 spun at 2.0x (8) and got 1 sent: 24 − 8 + 1
+				{ member: 'm1', balanceSeconds: 17 * H },
+				{ member: 'm2', balanceSeconds: 24 * H - 2 * 2 * H - H },
+			],
+		});
+		expect(events.map((e) => [e.type, e.actor, e.target])).toEqual([
+			['start', 'owner', null],
+			['config', null, null],
+			['spin', 'm1', null],
+			['add', 'm2', null],
+			['send', 'm2', 'm1'],
+		]);
+		expect(events[2]).toMatchObject({
+			rolledMinutes: 60,
+			balanceAfterSeconds: 16 * H,
+			timerAfterSeconds: 3 * 24 * H + H,
+		});
+		expect(events[3]).toMatchObject({ balanceAfterSeconds: 24 * H - 2 * 2 * H, bankAfterSeconds: 0 });
+		expect(events[3]).not.toHaveProperty('reason');
 	});
 
 	it('applies two simultaneous adds without losing either', async () => {

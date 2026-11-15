@@ -96,6 +96,11 @@ const noEvent = {
 	outcome: null,
 	creditSeconds: 0,
 	targetId: null,
+	timerAfterSeconds: null,
+	bankAfterSeconds: null,
+	balanceAfterSeconds: null,
+	rolledMinutes: null,
+	rules: null,
 } as const;
 
 /**
@@ -213,6 +218,7 @@ export class Game {
 						tier: outcome.tier,
 						effect: outcome.effect,
 						outcome: outcome.name,
+						rolledMinutes: outcome.effect === 'windfall' ? null : outcome.minutes,
 					},
 				};
 			},
@@ -260,7 +266,7 @@ export class Game {
 				return { ok: false, reason: BUSY };
 			}
 
-			const event: GameEvent = { ...draft, at: now };
+			const event: GameEvent = { ...draft, at: now, balanceAfterSeconds: fromBalance - seconds };
 			// oxlint-disable-next-line no-await-in-loop
 			await appendEvent(this.db, event);
 			return { ok: true, event, balanceSeconds: fromBalance - seconds, recipientBalanceSeconds: toBalance };
@@ -290,6 +296,8 @@ export class Game {
 			source: 'owner',
 			costSeconds: 0,
 			timerDeltaSeconds: timerSeconds,
+			timerAfterSeconds: timerSeconds,
+			bankAfterSeconds: 0,
 		};
 		await appendEvent(this.db, event);
 		this.emit();
@@ -388,15 +396,19 @@ export class Game {
 			}
 
 			// Built and checked before any write: nothing may fail once money has moved
+			const after = balance - planned.priceSeconds + planned.creditSeconds;
+			const projected = project(planned.next, now);
 			const event = validateEvent({
 				...planned.event,
 				at: now,
 				actorId: userId,
 				costSeconds: planned.priceSeconds,
 				creditSeconds: planned.creditSeconds,
+				timerAfterSeconds: projected.timerSeconds,
+				bankAfterSeconds: projected.bankSeconds,
+				balanceAfterSeconds: after,
 			});
 
-			const after = balance - planned.priceSeconds + planned.creditSeconds;
 			// oxlint-disable-next-line no-await-in-loop
 			if (!(await chargeWallet(this.db, userId, wallet, after, now))) continue;
 
@@ -451,6 +463,8 @@ export class Game {
 				costSeconds: 0,
 				timerDeltaSeconds: next.timerSeconds - before.timerSeconds,
 				bankDeltaSeconds: next.bankSeconds - before.bankSeconds,
+				timerAfterSeconds: next.timerSeconds,
+				bankAfterSeconds: next.bankSeconds,
 			};
 			// oxlint-disable-next-line no-await-in-loop
 			await appendEvent(this.db, event);

@@ -5,7 +5,7 @@ import type { ChastityConfig } from '../../lib/config.ts';
 import type { Game } from './game.ts';
 import { momentMessages } from './messages.ts';
 import { appendEvent, loadState, saveState } from './repository.ts';
-import { nextMoment } from './time.ts';
+import { nextMoment, project } from './time.ts';
 
 const NOTIFIED_FIELD = { 'hour-left': 'hourLeftAt', 'timer-zero': 'timerZeroAt', 'bank-dry': 'bankDryAt' } as const;
 
@@ -111,6 +111,7 @@ export class Notifier {
 			return;
 		}
 
+		const then = project(stored, moment.at);
 		await appendEvent(this.db, {
 			at: moment.at,
 			actorId: null,
@@ -126,6 +127,11 @@ export class Notifier {
 			outcome: null,
 			creditSeconds: 0,
 			targetId: null,
+			timerAfterSeconds: then.timerSeconds,
+			bankAfterSeconds: then.bankSeconds,
+			balanceAfterSeconds: null,
+			rolledMinutes: null,
+			rules: null,
 		});
 
 		// The DM matters most: a failed channel post (missing permission, Discord hiccup) must not stop it
