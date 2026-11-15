@@ -27,7 +27,7 @@ const BOARD_CHOICES: Record<Board, string> = {
 };
 
 /** The members' side of the game. Only works in the configured game channel. */
-@ApplyOptions<Command.Options>({ name: 'chastity', description: "Play with the owner's chastity timer" })
+@ApplyOptions<Command.Options>({ name: 'chastity', description: "Play with xenorio's chastity timer" })
 export class ChastityCommand extends Command {
 	public override registerApplicationCommands(registry: Command.Registry): void {
 		if (!this.container.config.chastity) return;

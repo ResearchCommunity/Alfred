@@ -1,3 +1,4 @@
+import { userMention } from 'discord.js';
 import type { Db } from 'mongodb';
 import type { ChastityConfig } from '../../lib/config.ts';
 import {
@@ -219,7 +220,8 @@ export class Game {
 	 */
 	public async memberSend(fromId: string, toId: string, seconds: number, reason: string | null): Promise<SendResult> {
 		if (fromId === this.config.ownerId) return { ok: false, reason: "You're the one in the cage." };
-		if (toId === this.config.ownerId) return { ok: false, reason: "The owner can't hold any currency." };
+		if (toId === this.config.ownerId)
+			return { ok: false, reason: `${userMention(this.config.ownerId)} can't hold any currency.` };
 		if (toId === fromId) return { ok: false, reason: "You can't send to yourself." };
 		if (seconds <= 0) return { ok: false, reason: 'Send at least a minute.' };
 
@@ -261,7 +263,8 @@ export class Game {
 	}
 
 	public async start(userId: string, timerSeconds: number): Promise<ActionResult> {
-		if (userId !== this.config.ownerId) return { ok: false, reason: 'Only the owner can do that.' };
+		if (userId !== this.config.ownerId)
+			return { ok: false, reason: `Only ${userMention(this.config.ownerId)} can do that.` };
 		const now = this.now();
 		const state: GameState = {
 			mode: 'locked',
@@ -301,7 +304,8 @@ export class Game {
 
 	/** Ends the game so it can be started again; `everything` also clears balances and history */
 	public async reset(userId: string, everything: boolean): Promise<{ ok: true } | { ok: false; reason: string }> {
-		if (userId !== this.config.ownerId) return { ok: false, reason: 'Only the owner can do that.' };
+		if (userId !== this.config.ownerId)
+			return { ok: false, reason: `Only ${userMention(this.config.ownerId)} can do that.` };
 		if (!(await resetGame(this.db, everything))) return { ok: false, reason: NOT_STARTED };
 		if (!everything) {
 			await appendEvent(this.db, {
@@ -411,7 +415,8 @@ export class Game {
 		type: GameEvent['type'],
 		transition: (state: GameState, now: Date) => GameState,
 	): Promise<ActionResult> {
-		if (userId !== this.config.ownerId) return { ok: false, reason: 'Only the owner can do that.' };
+		if (userId !== this.config.ownerId)
+			return { ok: false, reason: `Only ${userMention(this.config.ownerId)} can do that.` };
 
 		for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
 			const now = this.now();

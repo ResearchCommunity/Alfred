@@ -154,11 +154,12 @@ export function ownerPost(result: Extract<ActionResult, { ok: true }>): Post {
 }
 
 /** Channel post and owner DM for the moments the notifier watches */
-export function momentMessages(kind: MomentKind, mode: Mode): { channel: Post; dm: Post } {
+export function momentMessages(kind: MomentKind, mode: Mode, ownerId: string): { channel: Post; dm: Post } {
+	const owner = userMention(ownerId);
 	if (kind === 'timer-zero' && mode === 'unlocked') {
 		return {
 			channel: post(
-				'### The timer ran out\nThe owner is still unlocked. Once they lock up, every minute goes into the unlock bank.',
+				`### The timer ran out\n${owner} is still unlocked. Once they lock up, every minute goes into the unlock bank.`,
 			),
 			dm: post('Your timer ran out while you were unlocked. Lock up again to start filling your unlock bank.'),
 		};
@@ -166,7 +167,7 @@ export function momentMessages(kind: MomentKind, mode: Mode): { channel: Post; d
 	if (kind === 'timer-zero') {
 		return {
 			channel: post(
-				'### The timer ran out\nThe owner stays locked, and every minute from now on goes into the unlock bank.',
+				`### The timer ran out\n${owner} stays locked, and every minute from now on goes into the unlock bank.`,
 			),
 			dm: post('Your timer ran out. You stay locked; every minute now goes into your unlock bank.'),
 		};
@@ -231,7 +232,7 @@ export function rejection(
 		result.balanceSeconds === undefined
 			? ''
 			: ` Your balance: ${formatCurrency(result.balanceSeconds, config.currencyName)}.`;
-	return { content: `${result.reason}${balance}`, flags: MessageFlags.Ephemeral };
+	return { content: `${result.reason}${balance}`, flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } };
 }
 
 const PINNED = 'Read the pinned message to learn how to play';

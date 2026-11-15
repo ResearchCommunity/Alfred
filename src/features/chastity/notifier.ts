@@ -127,7 +127,7 @@ export class Notifier {
 		});
 
 		// The DM matters most: a failed channel post (missing permission, Discord hiccup) must not stop it
-		const messages = momentMessages(moment.kind, stored.mode);
+		const messages = momentMessages(moment.kind, stored.mode, this.config.ownerId);
 		try {
 			const channel = await this.client.channels.fetch(this.config.channelId);
 			if (channel?.isSendable()) await channel.send(messages.channel);

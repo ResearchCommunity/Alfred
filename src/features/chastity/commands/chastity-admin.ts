@@ -9,7 +9,7 @@ import { SECONDS } from '../time.ts';
  * never see it (Discord can't hide single subcommands per user), and checked against the
  * configured owner at runtime. Results are posted publicly in the game channel.
  */
-@ApplyOptions<Command.Options>({ name: 'chastity-admin', description: 'Owner controls for the chastity game' })
+@ApplyOptions<Command.Options>({ name: 'chastity-admin', description: "xenorio's controls for the chastity game" })
 export class ChastityAdminCommand extends Command {
 	public override registerApplicationCommands(registry: Command.Registry): void {
 		if (!this.container.config.chastity) return;

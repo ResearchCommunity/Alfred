@@ -50,8 +50,8 @@ describe('chastity messages', () => {
 	});
 
 	it("doesn't promise unlock bank growth when the timer runs out while unlocked", () => {
-		const text = JSON.stringify(momentMessages('timer-zero', 'unlocked'));
-		expect(text).toContain('still unlocked');
+		const text = JSON.stringify(momentMessages('timer-zero', 'unlocked', '1'));
+		expect(text).toContain('<@1> is still unlocked');
 		expect(text).not.toContain('every minute now goes into your unlock bank');
 	});
 });
