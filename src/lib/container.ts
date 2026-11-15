@@ -1,6 +1,7 @@
 import type { ServerType } from '@hono/node-server';
 import type { Db, MongoClient } from 'mongodb';
 import type { Logger } from 'pino';
+import type { Game } from '../features/chastity/game.ts';
 import type { Config } from './config.ts';
 import type { Env } from './env.ts';
 
@@ -16,5 +17,7 @@ declare module '@sapphire/pieces' {
 		mongo: MongoClient;
 		db: Db;
 		http: ServerType;
+		/** The chastity game, or null when its config section is missing */
+		chastity: Game | null;
 	}
 }

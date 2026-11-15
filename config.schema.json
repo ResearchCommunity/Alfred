@@ -267,6 +267,295 @@
             ],
             "additionalProperties": false,
             "description": "Rules panel and verification website. Leave this section out to disable onboarding."
+        },
+        "chastity": {
+            "type": "object",
+            "properties": {
+                "ownerId": {
+                    "type": "string",
+                    "pattern": "^\\d{17,20}$",
+                    "description": "The one person who is locked. Also the only one allowed to use /chastity-admin."
+                },
+                "channelId": {
+                    "type": "string",
+                    "pattern": "^\\d{17,20}$",
+                    "description": "The game channel: /chastity only works here, and game posts go here"
+                },
+                "currencyName": {
+                    "default": "dubloons",
+                    "description": "What the currency is called (unit: hours)",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "allowancePerDayHours": {
+                    "default": 8,
+                    "description": "Currency every member gains per 24h, trickling in continuously",
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                },
+                "walletCapHours": {
+                    "default": 24,
+                    "description": "The trickle stops at this balance",
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                },
+                "startingBalanceHours": {
+                    "default": 24,
+                    "description": "A member's balance before their first action",
+                    "type": "number",
+                    "minimum": 0
+                },
+                "multiplierDoublingDays": {
+                    "default": 3,
+                    "description": "The add multiplier doubles with every this many days left on the timer",
+                    "type": "number",
+                    "minimum": 0.1
+                },
+                "bankCapHours": {
+                    "default": 24,
+                    "description": "The owner's unlock bank stops growing at this many hours",
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                },
+                "removeCostRatio": {
+                    "default": 3,
+                    "description": "Currency hours per hour removed",
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                },
+                "spinCostHours": {
+                    "default": 4,
+                    "description": "Price of a wheel spin, times the multiplier",
+                    "type": "number",
+                    "minimum": 0.1
+                },
+                "wheel": {
+                    "default": [
+                        {
+                            "tier": "common",
+                            "weight": 60,
+                            "outcomes": [
+                                {
+                                    "name": "Nudge",
+                                    "weight": 35,
+                                    "effect": {
+                                        "kind": "timer",
+                                        "minMinutes": 60,
+                                        "maxMinutes": 180
+                                    }
+                                },
+                                {
+                                    "name": "Shove",
+                                    "weight": 15,
+                                    "effect": {
+                                        "kind": "timer",
+                                        "minMinutes": 180,
+                                        "maxMinutes": 360
+                                    }
+                                },
+                                {
+                                    "name": "Backfire",
+                                    "weight": 10,
+                                    "effect": {
+                                        "kind": "timer",
+                                        "minMinutes": -180,
+                                        "maxMinutes": -60
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "tier": "uncommon",
+                            "weight": 25,
+                            "outcomes": [
+                                {
+                                    "name": "Big push",
+                                    "weight": 10,
+                                    "effect": {
+                                        "kind": "timer",
+                                        "minMinutes": 360,
+                                        "maxMinutes": 720
+                                    }
+                                },
+                                {
+                                    "name": "Refund",
+                                    "weight": 8,
+                                    "effect": {
+                                        "kind": "refund",
+                                        "minMinutes": 60,
+                                        "maxMinutes": 120
+                                    }
+                                },
+                                {
+                                    "name": "Big backfire",
+                                    "weight": 7,
+                                    "effect": {
+                                        "kind": "timer",
+                                        "minMinutes": -480,
+                                        "maxMinutes": -240
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "tier": "rare",
+                            "weight": 12,
+                            "outcomes": [
+                                {
+                                    "name": "Jackpot",
+                                    "weight": 5,
+                                    "effect": {
+                                        "kind": "timer",
+                                        "minMinutes": 720,
+                                        "maxMinutes": 1440
+                                    }
+                                },
+                                {
+                                    "name": "Happy hour",
+                                    "weight": 5,
+                                    "effect": {
+                                        "kind": "happyHour",
+                                        "minMinutes": 60,
+                                        "maxMinutes": 60
+                                    }
+                                },
+                                {
+                                    "name": "Windfall",
+                                    "weight": 2,
+                                    "effect": {
+                                        "kind": "windfall",
+                                        "minMinutes": 480,
+                                        "maxMinutes": 480
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "tier": "legendary",
+                            "weight": 3,
+                            "outcomes": [
+                                {
+                                    "name": "Drain",
+                                    "weight": 1.5,
+                                    "effect": {
+                                        "kind": "bankDrain",
+                                        "minMinutes": 120,
+                                        "maxMinutes": 360
+                                    }
+                                },
+                                {
+                                    "name": "Heist",
+                                    "weight": 1,
+                                    "effect": {
+                                        "kind": "heist",
+                                        "minMinutes": 120,
+                                        "maxMinutes": 360
+                                    }
+                                },
+                                {
+                                    "name": "Mercy",
+                                    "weight": 0.5,
+                                    "effect": {
+                                        "kind": "bankBonus",
+                                        "minMinutes": 120,
+                                        "maxMinutes": 120
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    "description": "Wheel tiers with weights and outcomes",
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "tier": {
+                                "type": "string",
+                                "enum": [
+                                    "common",
+                                    "uncommon",
+                                    "rare",
+                                    "legendary"
+                                ]
+                            },
+                            "weight": {
+                                "type": "number",
+                                "exclusiveMinimum": 0
+                            },
+                            "outcomes": {
+                                "minItems": 1,
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 40
+                                        },
+                                        "weight": {
+                                            "type": "number",
+                                            "exclusiveMinimum": 0
+                                        },
+                                        "effect": {
+                                            "type": "object",
+                                            "properties": {
+                                                "kind": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "timer",
+                                                        "refund",
+                                                        "happyHour",
+                                                        "windfall",
+                                                        "bankDrain",
+                                                        "heist",
+                                                        "bankBonus"
+                                                    ]
+                                                },
+                                                "minMinutes": {
+                                                    "type": "integer",
+                                                    "minimum": -9007199254740991,
+                                                    "maximum": 9007199254740991
+                                                },
+                                                "maxMinutes": {
+                                                    "type": "integer",
+                                                    "minimum": -9007199254740991,
+                                                    "maximum": 9007199254740991
+                                                }
+                                            },
+                                            "required": [
+                                                "kind",
+                                                "minMinutes",
+                                                "maxMinutes"
+                                            ],
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "required": [
+                                        "name",
+                                        "weight",
+                                        "effect"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        },
+                        "required": [
+                            "tier",
+                            "weight",
+                            "outcomes"
+                        ],
+                        "additionalProperties": false
+                    }
+                }
+            },
+            "required": [
+                "ownerId",
+                "channelId"
+            ],
+            "additionalProperties": false,
+            "description": "The chastity game: members control the owner's timer. Leave this section out to disable it."
         }
     },
     "required": [

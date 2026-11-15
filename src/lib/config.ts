@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { parse as parseYaml } from 'yaml';
 import { z } from 'zod';
+import { DEFAULT_WHEEL, WheelSchema } from '../features/chastity/wheel.ts';
 import { MAX_RULES_LENGTH, rulesLength } from '../features/onboarding/rules-text.ts';
 
 // NOTE: this module is also imported by scripts/generate-config-schema.ts, which runs
@@ -133,6 +134,37 @@ const OnboardingSchema = z
 	})
 	.describe('Rules panel and verification website. Leave this section out to disable onboarding.');
 
+const Hours = z.number().positive();
+
+const ChastitySchema = z
+	.strictObject({
+		ownerId: Snowflake.describe('The one person who is locked. Also the only one allowed to use /chastity-admin.'),
+		channelId: Snowflake.describe('The game channel: /chastity only works here, and game posts go here'),
+		currencyName: z
+			.string()
+			.trim()
+			.min(1)
+			.default('dubloons')
+			.describe('What the currency is called (unit: hours)'),
+		allowancePerDayHours: Hours.default(8).describe(
+			'Currency every member gains per 24h, trickling in continuously',
+		),
+		walletCapHours: Hours.default(24).describe('The trickle stops at this balance'),
+		startingBalanceHours: z.number().min(0).default(24).describe("A member's balance before their first action"),
+		multiplierDoublingDays: z
+			.number()
+			.min(0.1)
+			.default(3)
+			.describe('The add multiplier doubles with every this many days left on the timer'),
+		bankCapHours: Hours.default(24).describe("The owner's unlock bank stops growing at this many hours"),
+		removeCostRatio: z.number().positive().default(3).describe('Currency hours per hour removed'),
+		spinCostHours: z.number().min(0.1).default(4).describe('Price of a wheel spin, times the multiplier'),
+		wheel: WheelSchema.default(DEFAULT_WHEEL).describe('Wheel tiers with weights and outcomes'),
+	})
+	.describe("The chastity game: members control the owner's timer. Leave this section out to disable it.");
+
+export type ChastityConfig = z.infer<typeof ChastitySchema>;
+
 /**
  * Guild-specific settings. Lives in `config.yaml` (see `config.example.yaml`),
  * validated at boot. Feature sections get added here as features are built.
@@ -144,6 +176,7 @@ export const ConfigSchema = z.strictObject({
 	nationality: NationalitySchema.prefault({}),
 	tickets: TicketsSchema.optional(),
 	onboarding: OnboardingSchema.optional(),
+	chastity: ChastitySchema.optional(),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
