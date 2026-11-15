@@ -15,7 +15,7 @@ import {
 	userMention,
 } from 'discord.js';
 import type { ChastityConfig } from '../../lib/config.ts';
-import { formatCurrency, formatDuration, formatMultiplier, relativeTime } from './format.ts';
+import { absoluteTime, formatCurrency, formatDuration, formatMultiplier, relativeTime } from './format.ts';
 import type { ActionResult, InfoView, SendResult } from './game.ts';
 import type { Board, GameEvent } from './repository.ts';
 import { addPriceSeconds, type GameState, type MomentKind, project } from './time.ts';
@@ -234,6 +234,11 @@ export function infoReply(view: InfoView, config: ChastityConfig): InteractionRe
 	const lines = [
 		'## Chastity',
 		`**Status:** ${view.mode === 'unlocked' && projection.bankSeconds === 0 ? 'Unlocked, but the unlock bank is empty: the timer is counting down' : MODE_LABEL[view.mode]}`,
+		...(view.stretch
+			? [
+					`**${view.stretch.locked ? 'Locked' : 'Unlocked'} for:** ${formatDuration(view.stretch.seconds)} (since ${absoluteTime(view.stretch.since)})`,
+				]
+			: []),
 		`**Time left:** ${formatDuration(projection.timerSeconds)}`,
 		`**Unlock bank:** ${formatDuration(projection.bankSeconds)}`,
 		`**Adding costs:** ${formatMultiplier(view.multiplier)} per hour${view.happyHourUntil ? ` (happy hour, ends ${relativeTime(view.happyHourUntil)})` : ''}`,
@@ -282,9 +287,6 @@ export function rejection(
 }
 
 const PINNED = 'Read the pinned message to learn how to play';
-
-/** Discord's absolute timestamp: date and time in each viewer's own time zone */
-const absoluteTime = (date: Date) => `<t:${Math.floor(date.getTime() / 1000)}:f>`;
 
 /**
  * The game channel's topic. Times are Discord timestamps, which count down live in every

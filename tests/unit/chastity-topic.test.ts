@@ -15,6 +15,7 @@ const view = (overrides: Partial<Extract<InfoView, { started: true }>> = {}): In
 	happyHourUntil: null,
 	timerRanOutAt: null,
 	balanceSeconds: null,
+	stretch: null,
 	...overrides,
 });
 

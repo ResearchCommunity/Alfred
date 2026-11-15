@@ -197,6 +197,15 @@ export async function appendEvent(db: Db, event: GameEvent): Promise<void> {
 	await events(db).insertOne(GameEventSchema.parse(event));
 }
 
+/** Since when the owner has been locked (game start or the last relock) or unlocked; null if unknown */
+export async function lastLockChange(db: Db): Promise<{ locked: boolean; since: Date } | null> {
+	const event = await events(db).findOne(
+		{ type: { $in: ['start', 'relock', 'unlock'] } },
+		{ sort: { at: -1, _id: -1 } },
+	);
+	return event && { locked: event.type !== 'unlock', since: event.at };
+}
+
 /** The whole log, oldest first */
 export function allEvents(db: Db): AsyncIterable<GameEvent> {
 	return events(db)

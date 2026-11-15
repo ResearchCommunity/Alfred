@@ -6,6 +6,7 @@ import {
 	chargeWallet,
 	createState,
 	type GameEvent,
+	lastLockChange,
 	loadState,
 	loadWallet,
 	refundWallet,
@@ -71,6 +72,8 @@ export type InfoView =
 			timerRanOutAt: Date | null;
 			/** The caller's balance; null for the owner, who has none */
 			balanceSeconds: number | null;
+			/** The current stretch: locked since the start or last relock, or unlocked since the last unlock */
+			stretch: { locked: boolean; since: Date; seconds: number } | null;
 	  };
 
 /** What a member action would do to the game, worked out from the state it was read from */
@@ -139,6 +142,7 @@ export class Game {
 		if (!stored) return { started: false };
 		const now = this.now();
 		const projection = project(stored, now);
+		const change = await lastLockChange(this.db);
 		return {
 			started: true,
 			mode: stored.mode,
@@ -148,6 +152,10 @@ export class Game {
 			// The recorded moment; the projection's own resets with every write while at zero
 			timerRanOutAt: stored.notified.timerZeroAt ?? projection.timerZeroAt,
 			balanceSeconds: userId === this.config.ownerId ? null : await this.balance(userId, now),
+			stretch: change && {
+				...change,
+				seconds: Math.max(0, Math.floor((now.getTime() - change.since.getTime()) / 1000)),
+			},
 		};
 	}
 

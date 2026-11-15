@@ -22,6 +22,11 @@ export function formatMultiplier(factor: number): string {
 	return `${factor.toFixed(1)}x`;
 }
 
+/** Discord renders this in every viewer's own time zone, as "15 November 2026 04:21" */
+export function absoluteTime(date: Date): string {
+	return `<t:${Math.floor(date.getTime() / 1000)}:f>`;
+}
+
 /** Discord renders this in every viewer's own time zone, as "in 3 hours" */
 export function relativeTime(date: Date): string {
 	return `<t:${Math.floor(date.getTime() / 1000)}:R>`;

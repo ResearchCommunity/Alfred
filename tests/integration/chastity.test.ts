@@ -228,6 +228,23 @@ describe('chastity game', () => {
 		expect(events[3]).not.toHaveProperty('reason');
 	});
 
+	it('tells how long the current stretch has lasted: since the start, an unlock, or the last relock', async () => {
+		await freshGame();
+		const at = (hours: number) => new Game(db(), config, () => new Date(T0.getTime() + hours * H * 1000));
+		expect(await at(5).info(ALICE)).toMatchObject({ stretch: { locked: true, since: T0, seconds: 5 * H } });
+
+		await saveState(db(), 0, state({ bankSeconds: 10 * H }), {
+			timerZeroAt: null,
+			bankDryAt: null,
+			hourLeftAt: null,
+		});
+		expect((await at(6).unlock(OWNER)).ok).toBe(true);
+		expect(await at(7).info(OWNER)).toMatchObject({ stretch: { locked: false, seconds: H } });
+
+		expect((await at(8).relock(OWNER)).ok).toBe(true);
+		expect(await at(10).info(ALICE)).toMatchObject({ stretch: { locked: true, seconds: 2 * H } });
+	});
+
 	it('applies two simultaneous adds without losing either', async () => {
 		const game = await freshGame(() => 0, H);
 		const results = await Promise.all([game.memberAdd(ALICE, 1, null), game.memberAdd(BOB, 1, null)]);
