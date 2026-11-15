@@ -1,0 +1,276 @@
+import { describe, expect, it } from 'vitest';
+import { Game } from '../../src/features/chastity/game.ts';
+import {
+	appendEvent,
+	chargeWallet,
+	createState,
+	leaderboard,
+	loadState,
+	loadWallet,
+	refundWallet,
+	saveState,
+} from '../../src/features/chastity/repository.ts';
+import type { GameState } from '../../src/features/chastity/time.ts';
+import { DEFAULT_WHEEL } from '../../src/features/chastity/wheel.ts';
+import type { ChastityConfig } from '../../src/lib/config.ts';
+import { useTestDatabase } from './helpers.ts';
+
+const H = 3600;
+const OWNER = '100000000000000001';
+const ALICE = '200000000000000002';
+const BOB = '300000000000000003';
+const T0 = new Date('2026-11-14T12:00:00Z');
+
+const config: ChastityConfig = {
+	ownerId: OWNER,
+	channelId: '400000000000000004',
+	currencyName: 'dubloons',
+	allowancePerDayHours: 8,
+	walletCapHours: 24,
+	startingBalanceHours: 24,
+	multiplierDoublingDays: 3,
+	bankCapHours: 24,
+	removeCostRatio: 3,
+	spinCostHours: 4,
+	wheel: DEFAULT_WHEEL,
+};
+
+const state = (overrides: Partial<GameState> = {}): GameState => ({
+	mode: 'locked',
+	resumeMode: null,
+	anchorAt: T0,
+	timerSeconds: 3 * 24 * H,
+	bankSeconds: 0,
+	happyHourUntil: null,
+	...overrides,
+});
+
+const event = (actorId: string, timerDeltaSeconds: number, source: 'member' | 'wheel' = 'member') => ({
+	at: T0,
+	actorId,
+	type: 'add' as const,
+	source,
+	costSeconds: H,
+	timerDeltaSeconds,
+	bankDeltaSeconds: 0,
+	multiplier: null,
+	reason: null,
+	tier: null,
+	effect: null,
+	outcome: null,
+	creditSeconds: 0,
+	targetId: null,
+});
+
+/** Random numbers that pick the given tier and outcome (by index), then the low end of the range */
+const pick = (tierIndex: number, outcomeIndex: number) => {
+	const tier = DEFAULT_WHEEL[tierIndex];
+	if (!tier) throw new Error('no such tier');
+	const tierTotal = DEFAULT_WHEEL.reduce((sum, t) => sum + t.weight, 0);
+	const tierStart = DEFAULT_WHEEL.slice(0, tierIndex).reduce((sum, t) => sum + t.weight, 0);
+	const outcomeTotal = tier.outcomes.reduce((sum, o) => sum + o.weight, 0);
+	const outcomeStart = tier.outcomes.slice(0, outcomeIndex).reduce((sum, o) => sum + o.weight, 0);
+	const values = [(tierStart + 0.001) / tierTotal, (outcomeStart + 0.001) / outcomeTotal, 0];
+	return () => values.shift() ?? 0;
+};
+
+describe('chastity repository', () => {
+	const db = useTestDatabase();
+
+	it('refuses a state write based on a stale version', async () => {
+		await db().collection('chastity_state').deleteMany({});
+		await createState(db(), state());
+		const notified = { timerZeroAt: null, bankDryAt: null };
+		expect(await saveState(db(), 0, state({ timerSeconds: 1 }), notified)).toBe(true);
+		expect(await saveState(db(), 0, state({ timerSeconds: 2 }), notified)).toBe(false);
+		expect((await loadState(db()))?.timerSeconds).toBe(1);
+	});
+
+	it('lets only one of two charges on the same wallet snapshot through, and refunds', async () => {
+		await chargeWallet(db(), ALICE, null, 10 * H, T0);
+		const wallet = await loadWallet(db(), ALICE);
+		const results = await Promise.all([
+			chargeWallet(db(), ALICE, wallet, 8 * H, T0),
+			chargeWallet(db(), ALICE, wallet, 6 * H, T0),
+		]);
+		expect(results.filter(Boolean)).toHaveLength(1);
+		const charged = (await loadWallet(db(), ALICE))?.balanceSeconds ?? 0;
+		await refundWallet(db(), ALICE, 2 * H);
+		expect((await loadWallet(db(), ALICE))?.balanceSeconds).toBe(charged + 2 * H);
+	});
+
+	it('sums added time per member, wheel included, ignoring removals', async () => {
+		await db().collection('chastity_events').deleteMany({});
+		await appendEvent(db(), event(ALICE, 2 * H));
+		await appendEvent(db(), event(ALICE, H, 'wheel'));
+		await appendEvent(db(), event(ALICE, -5 * H));
+		await appendEvent(db(), event(BOB, H));
+		expect(await leaderboard(db(), 'added')).toEqual([
+			{ userId: ALICE, value: 3 * H },
+			{ userId: BOB, value: H },
+		]);
+		expect(await leaderboard(db(), 'removed')).toEqual([{ userId: ALICE, value: 5 * H }]);
+		// A fully refunded spin isn't spending
+		await appendEvent(db(), { ...event(BOB, H, 'wheel'), type: 'spin', costSeconds: 4 * H, creditSeconds: 4 * H });
+		expect((await leaderboard(db(), 'spent')).find((row) => row.userId === BOB)?.value).toBe(H);
+	});
+});
+
+describe('chastity game', () => {
+	const db = useTestDatabase();
+
+	async function freshGame(random = () => 0, timerSeconds = 3 * 24 * H): Promise<Game> {
+		await Promise.all(
+			['chastity_state', 'chastity_wallets', 'chastity_events'].map((name) =>
+				db().collection(name).deleteMany({}),
+			),
+		);
+		const game = new Game(db(), config, () => T0, random);
+		expect((await game.start(OWNER, timerSeconds)).ok).toBe(true);
+		return game;
+	}
+
+	it('charges hours × multiplier for adding time', async () => {
+		const game = await freshGame();
+		const result = await game.memberAdd(ALICE, 6, 'you know what you did');
+		// Charged at the multiplier before the add; the result shows the new one for the next add
+		expect(result).toMatchObject({ ok: true, multiplier: 2.1, balanceSeconds: 12 * H });
+		expect(result.ok && result.event).toMatchObject({
+			multiplier: 2,
+			costSeconds: 12 * H,
+			timerDeltaSeconds: 6 * H,
+		});
+	});
+
+	it("charges nothing for what a member can't afford", async () => {
+		const game = await freshGame();
+		expect(await game.memberAdd(ALICE, 13, null)).toMatchObject({ ok: false, balanceSeconds: 24 * H });
+		expect(await loadWallet(db(), ALICE)).toBeNull();
+	});
+
+	it('only charges for time actually removed', async () => {
+		const game = await freshGame(() => 0, 1800);
+		expect(await game.memberRemove(ALICE, 2, null)).toMatchObject({ ok: true, balanceSeconds: 24 * H - 1.5 * H });
+		expect(await game.memberRemove(ALICE, 1, null)).toMatchObject({ ok: false });
+	});
+
+	it('applies two simultaneous adds without losing either', async () => {
+		const game = await freshGame(() => 0, H);
+		const results = await Promise.all([game.memberAdd(ALICE, 1, null), game.memberAdd(BOB, 1, null)]);
+		expect(results.every((r) => r.ok)).toBe(true);
+		expect((await loadState(db()))?.timerSeconds).toBe(3 * H);
+	});
+
+	it("keeps the owner out of member actions and members out of the owner's", async () => {
+		const game = await freshGame();
+		expect(await game.memberAdd(OWNER, 1, null)).toMatchObject({ ok: false });
+		expect(await game.emergency(ALICE, true)).toMatchObject({ ok: false });
+	});
+
+	it('pauses member actions during an emergency without charging anyone', async () => {
+		const game = await freshGame();
+		await game.emergency(OWNER, true);
+		expect(await game.memberAdd(ALICE, 1, null)).toMatchObject({ ok: false, reason: 'The game is paused.' });
+		expect(await loadWallet(db(), ALICE)).toBeNull();
+	});
+
+	it('a spin costs 4 × the multiplier and adds time', async () => {
+		const game = await freshGame(pick(0, 0));
+		expect(await game.memberSpin(ALICE)).toMatchObject({
+			ok: true,
+			roll: { tier: 'common', name: 'Nudge' },
+			balanceSeconds: 16 * H,
+			event: { timerDeltaSeconds: H, multiplier: 2, costSeconds: 8 * H, creditSeconds: 0 },
+		});
+	});
+
+	it('a refund adds time and gives the price back', async () => {
+		const game = await freshGame(pick(1, 1));
+		expect(await game.memberSpin(ALICE)).toMatchObject({
+			ok: true,
+			roll: { name: 'Refund' },
+			balanceSeconds: 24 * H,
+			event: { timerDeltaSeconds: H, creditSeconds: 8 * H },
+		});
+	});
+
+	it('a windfall pays the spinner past the cap', async () => {
+		const game = await freshGame(pick(2, 2), H);
+		expect(await game.memberSpin(ALICE)).toMatchObject({
+			ok: true,
+			roll: { name: 'Windfall' },
+			balanceSeconds: 28 * H,
+		});
+	});
+
+	it('a happy hour halves the price of adding and spinning for everyone', async () => {
+		const game = await freshGame(pick(2, 1));
+		expect(await game.memberSpin(ALICE)).toMatchObject({ ok: true, roll: { name: 'Happy hour' }, multiplier: 1 });
+		expect(await game.memberSpin(BOB)).toMatchObject({ ok: true, event: { multiplier: 1, costSeconds: 4 * H } });
+		expect(await game.memberAdd(BOB, 6, null)).toMatchObject({
+			ok: true,
+			event: { multiplier: 1, costSeconds: 6 * H },
+		});
+	});
+
+	it('a heist moves bank time onto the timer, and still adds the full amount from an empty bank', async () => {
+		const game = await freshGame(pick(3, 1));
+		await saveState(db(), 0, state({ bankSeconds: H }), { timerZeroAt: null, bankDryAt: null });
+		expect(await game.memberSpin(ALICE)).toMatchObject({
+			ok: true,
+			roll: { tier: 'legendary', name: 'Heist' },
+			event: { bankDeltaSeconds: -H, timerDeltaSeconds: 2 * H },
+		});
+	});
+
+	it('sends currency to another member, past their cap, and the sender pays exactly that', async () => {
+		const game = await freshGame();
+		expect(await game.memberSend(ALICE, BOB, 10 * H, 'for the big push')).toMatchObject({
+			ok: true,
+			balanceSeconds: 14 * H,
+			recipientBalanceSeconds: 34 * H,
+			event: { type: 'send', actorId: ALICE, targetId: BOB, costSeconds: 10 * H },
+		});
+		expect((await loadWallet(db(), BOB))?.balanceSeconds).toBe(34 * H);
+		expect(await leaderboard(db(), 'spent')).toEqual([]);
+	});
+
+	it('refuses sends to yourself, to the owner, from the owner, or beyond your balance', async () => {
+		const game = await freshGame();
+		expect(await game.memberSend(ALICE, ALICE, H, null)).toMatchObject({ ok: false });
+		expect(await game.memberSend(ALICE, OWNER, H, null)).toMatchObject({ ok: false });
+		expect(await game.memberSend(OWNER, ALICE, H, null)).toMatchObject({ ok: false });
+		expect(await game.memberSend(ALICE, BOB, 25 * H, null)).toMatchObject({ ok: false, balanceSeconds: 24 * H });
+		expect(await loadWallet(db(), BOB)).toBeNull();
+	});
+
+	it('lets the owner set the timer and the unlock bank to exact values, and nobody else', async () => {
+		const game = await freshGame();
+		expect(await game.set(ALICE, { timerSeconds: H })).toMatchObject({ ok: false });
+		expect(await game.set(OWNER, { timerSeconds: 5 * H, bankSeconds: 2 * H })).toMatchObject({
+			ok: true,
+			projection: { timerSeconds: 5 * H, bankSeconds: 2 * H },
+			event: { type: 'set', timerDeltaSeconds: 5 * H - 3 * 24 * H, bankDeltaSeconds: 2 * H },
+		});
+		expect(await game.set(OWNER, { bankSeconds: 0 })).toMatchObject({
+			ok: true,
+			projection: { timerSeconds: 5 * H },
+		});
+	});
+
+	it('resets the game so it can start again, keeping balances unless told to wipe everything', async () => {
+		const game = await freshGame();
+		await game.memberAdd(ALICE, 1, null);
+		expect(await game.reset(ALICE, false)).toMatchObject({ ok: false });
+
+		expect(await game.reset(OWNER, false)).toEqual({ ok: true });
+		expect(await loadState(db())).toBeNull();
+		expect(await loadWallet(db(), ALICE)).not.toBeNull();
+		expect((await game.start(OWNER, H)).ok).toBe(true);
+
+		expect(await game.reset(OWNER, true)).toEqual({ ok: true });
+		expect(await loadWallet(db(), ALICE)).toBeNull();
+		expect(await leaderboard(db(), 'added')).toEqual([]);
+		expect(await game.reset(OWNER, true)).toMatchObject({ ok: false });
+	});
+});

@@ -49,3 +49,12 @@ onboarding:
               note: 'Optional small print under a rule, e.g. an example.'
         closing: 'Optional small print at the end.'
     # disclaimerSentence and welcomeMessages have defaults; override them here if you like
+
+chastity:
+    # The one person who is locked, and the only one allowed to use /chastity-admin
+    ownerId: '000000000000000000'
+    # /chastity only works here, and game posts go here
+    channelId: '000000000000000000'
+    # Everything else has defaults (see config.schema.json): currencyName, allowancePerDayHours,
+    # walletCapHours, startingBalanceHours, bankCapHours, multiplierDoublingDays, removeCostRatio,
+    # spinCostHours, wheel
