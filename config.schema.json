@@ -376,8 +376,8 @@
                                     "weight": 13,
                                     "effect": {
                                         "kind": "timer",
-                                        "minMinutes": -180,
-                                        "maxMinutes": -60
+                                        "minMinutes": -360,
+                                        "maxMinutes": -180
                                     }
                                 }
                             ]
@@ -410,8 +410,8 @@
                                     "weight": 8,
                                     "effect": {
                                         "kind": "timer",
-                                        "minMinutes": -480,
-                                        "maxMinutes": -240
+                                        "minMinutes": -720,
+                                        "maxMinutes": -360
                                     }
                                 }
                             ]

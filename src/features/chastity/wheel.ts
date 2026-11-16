@@ -95,7 +95,7 @@ export const DEFAULT_WHEEL: Wheel = [
 		outcomes: [
 			outcome('Nudge', 33, 'timer', 60, 180),
 			outcome('Shove', 14, 'timer', 180, 360),
-			outcome('Backfire', 13, 'timer', -180, -60),
+			outcome('Backfire', 13, 'timer', -360, -180),
 		],
 	},
 	{
@@ -105,7 +105,7 @@ export const DEFAULT_WHEEL: Wheel = [
 			outcome('Big push', 9, 'timer', 360, 720),
 			// Half back, not all: a free spin let one lucky member chain a whole streak
 			{ name: 'Refund', weight: 8, effect: { kind: 'refund', minMinutes: 60, maxMinutes: 120, share: 0.5 } },
-			outcome('Big backfire', 8, 'timer', -480, -240),
+			outcome('Big backfire', 8, 'timer', -720, -360),
 		],
 	},
 	{

@@ -31,7 +31,7 @@ describe('wheelReply', () => {
 		expect(text).toContain('**Drain** · 0.6%');
 		expect(text).toContain("and **half** the spin's price back");
 		expect(text).toContain('**Mercy** · 0.5%');
-		expect(text).toContain('**−1h to 3h** off the timer');
+		expect(text).toContain('**−3h to 6h** off the timer');
 		expect(text).toContain("**2× the spin's price** for the spinner, right now 16 dubloons");
 	});
 
