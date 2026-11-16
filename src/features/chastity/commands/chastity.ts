@@ -1,9 +1,9 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { setTimeout } from 'node:timers/promises';
-import { channelMention, InteractionContextType, MessageFlags } from 'discord.js';
+import { channelMention, InteractionContextType, MessageFlags, type SlashCommandNumberOption } from 'discord.js';
 import type { ChastityConfig } from '../../../lib/config.ts';
-import type { ActionResult } from '../game.ts';
+import type { ActionResult, Amount } from '../game.ts';
 import {
 	actionPost,
 	infoReply,
@@ -35,6 +35,14 @@ function cleanReason(raw: string | null): string | null {
 	return reason || null;
 }
 
+/** Instead of hours: spend this much and get as much time as it buys */
+const amountOption = (option: SlashCommandNumberOption, currency: string) =>
+	option
+		.setName('amount')
+		.setDescription(`Or: spend this many ${currency}, for as much time as that buys`.slice(0, 100))
+		.setMinValue(0.1)
+		.setMaxValue(100_000);
+
 const BOARD_CHOICES: Record<Board, string> = {
 	added: 'Time added',
 	removed: 'Time removed',
@@ -46,7 +54,8 @@ const BOARD_CHOICES: Record<Board, string> = {
 @ApplyOptions<Command.Options>({ name: 'chastity', description: "Play with xenorio's chastity timer" })
 export class ChastityCommand extends Command {
 	public override registerApplicationCommands(registry: Command.Registry): void {
-		if (!this.container.config.chastity) return;
+		const chastity = this.container.config.chastity;
+		if (!chastity) return;
 		registry.registerChatInputCommand((builder) =>
 			builder
 				.setName(this.name)
@@ -58,13 +67,9 @@ export class ChastityCommand extends Command {
 						.setName('add')
 						.setDescription('Add time (costs hours × the current multiplier)')
 						.addIntegerOption((o) =>
-							o
-								.setName('hours')
-								.setDescription('Whole hours')
-								.setMinValue(1)
-								.setMaxValue(10_000)
-								.setRequired(true),
+							o.setName('hours').setDescription('Whole hours').setMinValue(1).setMaxValue(10_000),
 						)
+						.addNumberOption((o) => amountOption(o, chastity.currencyName))
 						.addStringOption((o) =>
 							o.setName('reason').setDescription('Shown with your action').setMaxLength(MAX_REASON),
 						),
@@ -74,13 +79,9 @@ export class ChastityCommand extends Command {
 						.setName('remove')
 						.setDescription('Remove time (flat price per hour)')
 						.addIntegerOption((o) =>
-							o
-								.setName('hours')
-								.setDescription('Whole hours')
-								.setMinValue(1)
-								.setMaxValue(10_000)
-								.setRequired(true),
+							o.setName('hours').setDescription('Whole hours').setMinValue(1).setMaxValue(10_000),
 						)
+						.addNumberOption((o) => amountOption(o, chastity.currencyName))
 						.addStringOption((o) =>
 							o.setName('reason').setDescription('Shown with your action').setMaxLength(MAX_REASON),
 						),
@@ -170,13 +171,28 @@ export class ChastityCommand extends Command {
 			return;
 		}
 
-		const hours = interaction.options.getInteger('hours') ?? 0;
+		let amount: Amount | null = null;
+		if (subcommand === 'add' || subcommand === 'remove') {
+			const hours = interaction.options.getInteger('hours');
+			const currency = interaction.options.getNumber('amount');
+			if ((hours === null) === (currency === null)) {
+				await interaction.reply({
+					content: `Give either \`hours\` or an \`amount\` of ${chastity.currencyName}, not both or neither.`,
+					flags: MessageFlags.Ephemeral,
+				});
+				return;
+			}
+			amount =
+				hours === null
+					? { kind: 'currency', seconds: Math.round((currency ?? 0) * 60) * 60 }
+					: { kind: 'hours', hours };
+		}
 		const reason = cleanReason(interaction.options.getString('reason'));
 		const result =
-			subcommand === 'add'
-				? await game.memberAdd(userId, hours, reason)
-				: subcommand === 'remove'
-					? await game.memberRemove(userId, hours, reason)
+			subcommand === 'add' && amount
+				? await game.memberAdd(userId, amount, reason)
+				: subcommand === 'remove' && amount
+					? await game.memberRemove(userId, amount, reason)
 					: await game.memberSpin(userId);
 
 		if (!result.ok) {

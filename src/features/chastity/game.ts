@@ -118,6 +118,23 @@ function notifiedAfter(stored: StoredState, next: GameState): Notified {
 	};
 }
 
+/** How much time an add or remove is for: whole hours, or as much as some currency buys */
+export type Amount = { kind: 'hours'; hours: number } | { kind: 'currency'; seconds: number };
+
+/**
+ * The most whole minutes of time that `currencySeconds` buys, by the real price function, so
+ * rounding (or floating point) can never make it cost more than what was offered.
+ */
+export function affordable(
+	currencySeconds: number,
+	pricePerHour: number,
+	priceOf: (seconds: number) => number,
+): number {
+	let seconds = Math.floor(currencySeconds / 60 / pricePerHour + 1) * 60;
+	while (seconds > 0 && priceOf(seconds) > currencySeconds) seconds -= 60;
+	return seconds;
+}
+
 export class Game {
 	private readonly listeners: Array<() => void> = [];
 
@@ -159,12 +176,15 @@ export class Game {
 		};
 	}
 
-	public memberAdd(userId: string, hours: number, reason: string | null): Promise<ActionResult> {
+	public memberAdd(userId: string, amount: Amount, reason: string | null): Promise<ActionResult> {
 		return this.memberAction(userId, (stored, now) => {
 			const factor = this.price(stored, project(stored, now).timerSeconds, now);
-			const seconds = hours * SECONDS.HOUR;
+			const priceOf = (seconds: number) => addPriceSeconds(seconds / SECONDS.HOUR, factor);
+			const seconds =
+				amount.kind === 'hours' ? amount.hours * SECONDS.HOUR : affordable(amount.seconds, factor, priceOf);
+			if (seconds === 0) return "That doesn't buy even a minute.";
 			return {
-				priceSeconds: addPriceSeconds(hours, factor),
+				priceSeconds: priceOf(seconds),
 				creditSeconds: 0,
 				next: addTimer(stored, now, seconds),
 				event: {
@@ -179,12 +199,17 @@ export class Game {
 		});
 	}
 
-	public memberRemove(userId: string, hours: number, reason: string | null): Promise<ActionResult> {
+	public memberRemove(userId: string, amount: Amount, reason: string | null): Promise<ActionResult> {
 		return this.memberAction(userId, (stored, now) => {
-			const { state, removedSeconds } = removeTimer(stored, now, hours * SECONDS.HOUR);
+			const ratio = this.config.removeCostRatio;
+			const priceOf = (seconds: number) => removePriceSeconds(seconds, ratio);
+			const wanted =
+				amount.kind === 'hours' ? amount.hours * SECONDS.HOUR : affordable(amount.seconds, ratio, priceOf);
+			if (wanted === 0) return "That doesn't buy even a minute.";
+			const { state, removedSeconds } = removeTimer(stored, now, wanted);
 			if (removedSeconds === 0) return 'The timer is already at zero.';
 			return {
-				priceSeconds: removePriceSeconds(removedSeconds, this.config.removeCostRatio),
+				priceSeconds: priceOf(removedSeconds),
 				creditSeconds: 0,
 				next: state,
 				event: { ...noEvent, type: 'remove', source: 'member', timerDeltaSeconds: -removedSeconds, reason },

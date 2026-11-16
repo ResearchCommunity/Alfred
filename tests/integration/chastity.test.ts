@@ -143,7 +143,7 @@ describe('chastity game', () => {
 
 	it('charges hours × multiplier for adding time', async () => {
 		const game = await freshGame();
-		const result = await game.memberAdd(ALICE, 6, 'you know what you did');
+		const result = await game.memberAdd(ALICE, { kind: 'hours', hours: 6 }, 'you know what you did');
 		// Charged at the multiplier before the add (1.5x at 3 days); the result shows the new one
 		expect(result).toMatchObject({ ok: true, multiplier: 1.7, balanceSeconds: 15 * H });
 		expect(result.ok && result.event).toMatchObject({
@@ -156,14 +156,46 @@ describe('chastity game', () => {
 	it("charges nothing for what a member can't afford", async () => {
 		const game = await freshGame();
 		// 17h at 1.5x would cost 25.5, one more than a full wallet
-		expect(await game.memberAdd(ALICE, 17, null)).toMatchObject({ ok: false, balanceSeconds: 24 * H });
+		expect(await game.memberAdd(ALICE, { kind: 'hours', hours: 17 }, null)).toMatchObject({
+			ok: false,
+			balanceSeconds: 24 * H,
+		});
 		expect(await loadWallet(db(), ALICE)).toBeNull();
+	});
+
+	it('adds and removes as much time as an amount of currency buys, never charging more', async () => {
+		const game = await freshGame();
+		// 10 at 1.5x buys 6h 40m
+		expect(await game.memberAdd(ALICE, { kind: 'currency', seconds: 10 * H }, null)).toMatchObject({
+			ok: true,
+			event: { timerDeltaSeconds: 400 * 60, costSeconds: 10 * H },
+		});
+		// 10 at 3 per hour removes 3h 20m
+		expect(await game.memberRemove(BOB, { kind: 'currency', seconds: 10 * H }, null)).toMatchObject({
+			ok: true,
+			event: { timerDeltaSeconds: -200 * 60, costSeconds: 10 * H },
+		});
+		expect(await game.memberAdd(BOB, { kind: 'currency', seconds: 60 }, null)).toMatchObject({
+			ok: false,
+			reason: "That doesn't buy even a minute.",
+		});
+	});
+
+	it('charges a currency remove only for what was left on the timer', async () => {
+		const game = await freshGame(() => 0, 1800);
+		expect(await game.memberRemove(ALICE, { kind: 'currency', seconds: 10 * H }, null)).toMatchObject({
+			ok: true,
+			event: { timerDeltaSeconds: -1800, costSeconds: 1.5 * H },
+		});
 	});
 
 	it('only charges for time actually removed', async () => {
 		const game = await freshGame(() => 0, 1800);
-		expect(await game.memberRemove(ALICE, 2, null)).toMatchObject({ ok: true, balanceSeconds: 24 * H - 1.5 * H });
-		expect(await game.memberRemove(ALICE, 1, null)).toMatchObject({ ok: false });
+		expect(await game.memberRemove(ALICE, { kind: 'hours', hours: 2 }, null)).toMatchObject({
+			ok: true,
+			balanceSeconds: 24 * H - 1.5 * H,
+		});
+		expect(await game.memberRemove(ALICE, { kind: 'hours', hours: 1 }, null)).toMatchObject({ ok: false });
 	});
 
 	it('announces the last hour again only after the timer went back above an hour', async () => {
@@ -173,9 +205,9 @@ describe('chastity game', () => {
 			bankDryAt: null,
 			hourLeftAt: T0,
 		});
-		await game.memberAdd(ALICE, 0.25, null);
+		await game.memberAdd(ALICE, { kind: 'hours', hours: 0.25 }, null);
 		expect((await loadState(db()))?.notified.hourLeftAt).toEqual(T0);
-		await game.memberAdd(ALICE, 2, null);
+		await game.memberAdd(ALICE, { kind: 'hours', hours: 2 }, null);
 		expect((await loadState(db()))?.notified.hourLeftAt).toBeNull();
 	});
 
@@ -190,7 +222,7 @@ describe('chastity game', () => {
 		const game = await freshGame(pick(0, 0));
 		await recordRules(db(), config, T0);
 		await game.memberSpin(BOB);
-		await game.memberAdd(ALICE, 2, 'a secret reason');
+		await game.memberAdd(ALICE, { kind: 'hours', hours: 2 }, 'a secret reason');
 		await game.memberSend(ALICE, BOB, H, 'also secret');
 
 		const { name, data } = await exportGame(db(), config, T0);
@@ -251,21 +283,27 @@ describe('chastity game', () => {
 
 	it('applies two simultaneous adds without losing either', async () => {
 		const game = await freshGame(() => 0, H);
-		const results = await Promise.all([game.memberAdd(ALICE, 1, null), game.memberAdd(BOB, 1, null)]);
+		const results = await Promise.all([
+			game.memberAdd(ALICE, { kind: 'hours', hours: 1 }, null),
+			game.memberAdd(BOB, { kind: 'hours', hours: 1 }, null),
+		]);
 		expect(results.every((r) => r.ok)).toBe(true);
 		expect((await loadState(db()))?.timerSeconds).toBe(3 * H);
 	});
 
 	it("keeps the owner out of member actions and members out of the owner's", async () => {
 		const game = await freshGame();
-		expect(await game.memberAdd(OWNER, 1, null)).toMatchObject({ ok: false });
+		expect(await game.memberAdd(OWNER, { kind: 'hours', hours: 1 }, null)).toMatchObject({ ok: false });
 		expect(await game.emergency(ALICE, true)).toMatchObject({ ok: false });
 	});
 
 	it('pauses member actions during an emergency without charging anyone', async () => {
 		const game = await freshGame();
 		await game.emergency(OWNER, true);
-		expect(await game.memberAdd(ALICE, 1, null)).toMatchObject({ ok: false, reason: 'The game is paused.' });
+		expect(await game.memberAdd(ALICE, { kind: 'hours', hours: 1 }, null)).toMatchObject({
+			ok: false,
+			reason: 'The game is paused.',
+		});
 		expect(await loadWallet(db(), ALICE)).toBeNull();
 	});
 
@@ -310,7 +348,7 @@ describe('chastity game', () => {
 		const game = await freshGame(pick(2, 1), 12 * H);
 		expect(await game.memberSpin(ALICE)).toMatchObject({ ok: true, roll: { name: 'Happy hour' }, multiplier: 0.5 });
 		expect(await game.memberSpin(BOB)).toMatchObject({ ok: true, event: { multiplier: 0.5, costSeconds: 2 * H } });
-		expect(await game.memberAdd(BOB, 6, null)).toMatchObject({
+		expect(await game.memberAdd(BOB, { kind: 'hours', hours: 6 }, null)).toMatchObject({
 			ok: true,
 			event: { multiplier: 0.5, costSeconds: 3 * H },
 		});
@@ -383,7 +421,7 @@ describe('chastity game', () => {
 
 	it('resets the game so it can start again, keeping balances unless told to wipe everything', async () => {
 		const game = await freshGame();
-		await game.memberAdd(ALICE, 1, null);
+		await game.memberAdd(ALICE, { kind: 'hours', hours: 1 }, null);
 		expect(await game.reset(ALICE, false)).toMatchObject({ ok: false });
 
 		expect(await game.reset(OWNER, false)).toEqual({ ok: true });

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { affordable } from '../../src/features/chastity/game.ts';
 import {
 	addPriceSeconds,
 	emergencyOff,
@@ -134,5 +135,18 @@ describe('nextMoment', () => {
 
 	it('has nothing to say during an emergency', () => {
 		expect(nextMoment(locked({ mode: 'emergency', resumeMode: 'locked' }), none, at(5))).toBeNull();
+	});
+});
+
+describe('affordable', () => {
+	it('never buys more than the currency pays for, even when floating point rounds up', () => {
+		for (const ratio of [1, 1.1, 1.5, 2.9, 3, 7.3]) {
+			for (let minutes = 1; minutes <= 600; minutes++) {
+				const seconds = affordable(minutes * 60, ratio, (s) => removePriceSeconds(s, ratio));
+				expect(removePriceSeconds(seconds, ratio)).toBeLessThanOrEqual(minutes * 60);
+				// and not a minute less than it could
+				expect(removePriceSeconds(seconds + 60, ratio)).toBeGreaterThan(minutes * 60);
+			}
+		}
 	});
 });
