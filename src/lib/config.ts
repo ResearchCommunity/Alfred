@@ -186,6 +186,18 @@ const ChastitySchema = z
 
 export type ChastityConfig = z.infer<typeof ChastitySchema>;
 
+const AutoKickSchema = z
+	.strictObject({
+		afterDays: z
+			.number()
+			.positive()
+			.default(7)
+			.describe('Members who still have no roles this many days after joining get kicked'),
+	})
+	.describe(
+		'Nightly kick (midnight, German time) of members without any roles, plus /kick-unverified. Leave this section out to disable it.',
+	);
+
 /**
  * Guild-specific settings. Lives in `config.yaml` (see `config.example.yaml`),
  * validated at boot. Feature sections get added here as features are built.
@@ -198,6 +210,7 @@ export const ConfigSchema = z.strictObject({
 	tickets: TicketsSchema.optional(),
 	onboarding: OnboardingSchema.optional(),
 	chastity: ChastitySchema.optional(),
+	autoKick: AutoKickSchema.optional(),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;

@@ -50,6 +50,11 @@ onboarding:
         closing: 'Optional small print at the end.'
     # disclaimerSentence and welcomeMessages have defaults; override them here if you like
 
+# Kicks members who have no roles at all this long after joining, every night at midnight
+# (German time), and adds /kick-unverified to do it by hand. Leave out to disable.
+autoKick:
+    afterDays: 7
+
 chastity:
     # The one person who is locked, and the only one allowed to use /chastity-admin
     ownerId: '000000000000000000'

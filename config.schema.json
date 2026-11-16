@@ -595,6 +595,19 @@
             ],
             "additionalProperties": false,
             "description": "The chastity game: members control the owner's timer. Leave this section out to disable it."
+        },
+        "autoKick": {
+            "type": "object",
+            "properties": {
+                "afterDays": {
+                    "default": 7,
+                    "description": "Members who still have no roles this many days after joining get kicked",
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                }
+            },
+            "additionalProperties": false,
+            "description": "Nightly kick (midnight, German time) of members without any roles, plus /kick-unverified. Leave this section out to disable it."
         }
     },
     "required": [
