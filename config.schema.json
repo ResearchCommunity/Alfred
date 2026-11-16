@@ -355,7 +355,7 @@
                             "outcomes": [
                                 {
                                     "name": "Nudge",
-                                    "weight": 35,
+                                    "weight": 33,
                                     "effect": {
                                         "kind": "timer",
                                         "minMinutes": 60,
@@ -364,7 +364,7 @@
                                 },
                                 {
                                     "name": "Shove",
-                                    "weight": 15,
+                                    "weight": 14,
                                     "effect": {
                                         "kind": "timer",
                                         "minMinutes": 180,
@@ -373,7 +373,7 @@
                                 },
                                 {
                                     "name": "Backfire",
-                                    "weight": 10,
+                                    "weight": 13,
                                     "effect": {
                                         "kind": "timer",
                                         "minMinutes": -180,
@@ -388,7 +388,7 @@
                             "outcomes": [
                                 {
                                     "name": "Big push",
-                                    "weight": 10,
+                                    "weight": 9,
                                     "effect": {
                                         "kind": "timer",
                                         "minMinutes": 360,
@@ -401,12 +401,13 @@
                                     "effect": {
                                         "kind": "refund",
                                         "minMinutes": 60,
-                                        "maxMinutes": 120
+                                        "maxMinutes": 120,
+                                        "share": 0.5
                                     }
                                 },
                                 {
                                     "name": "Big backfire",
-                                    "weight": 7,
+                                    "weight": 8,
                                     "effect": {
                                         "kind": "timer",
                                         "minMinutes": -480,
@@ -417,7 +418,7 @@
                         },
                         {
                             "tier": "rare",
-                            "weight": 12,
+                            "weight": 13.5,
                             "outcomes": [
                                 {
                                     "name": "Jackpot",
@@ -430,7 +431,7 @@
                                 },
                                 {
                                     "name": "Happy hour",
-                                    "weight": 5,
+                                    "weight": 6.5,
                                     "effect": {
                                         "kind": "happyHour",
                                         "minMinutes": 60,
@@ -449,11 +450,11 @@
                         },
                         {
                             "tier": "legendary",
-                            "weight": 3,
+                            "weight": 1.5,
                             "outcomes": [
                                 {
                                     "name": "Drain",
-                                    "weight": 1.5,
+                                    "weight": 0.6,
                                     "effect": {
                                         "kind": "bankDrain",
                                         "minMinutes": 120,
@@ -462,7 +463,7 @@
                                 },
                                 {
                                     "name": "Heist",
-                                    "weight": 1,
+                                    "weight": 0.4,
                                     "effect": {
                                         "kind": "heist",
                                         "minMinutes": 120,
@@ -524,7 +525,6 @@
                                                             "type": "string",
                                                             "enum": [
                                                                 "timer",
-                                                                "refund",
                                                                 "happyHour",
                                                                 "bankDrain",
                                                                 "heist",
@@ -540,6 +540,38 @@
                                                             "type": "integer",
                                                             "minimum": -9007199254740991,
                                                             "maximum": 9007199254740991
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "kind",
+                                                        "minMinutes",
+                                                        "maxMinutes"
+                                                    ],
+                                                    "additionalProperties": false
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "kind": {
+                                                            "type": "string",
+                                                            "const": "refund"
+                                                        },
+                                                        "minMinutes": {
+                                                            "type": "integer",
+                                                            "minimum": -9007199254740991,
+                                                            "maximum": 9007199254740991
+                                                        },
+                                                        "maxMinutes": {
+                                                            "type": "integer",
+                                                            "minimum": -9007199254740991,
+                                                            "maximum": 9007199254740991
+                                                        },
+                                                        "share": {
+                                                            "default": 0.5,
+                                                            "description": "How much of the spin's price comes back (1 = all)",
+                                                            "type": "number",
+                                                            "exclusiveMinimum": 0,
+                                                            "maximum": 1
                                                         }
                                                     },
                                                     "required": [

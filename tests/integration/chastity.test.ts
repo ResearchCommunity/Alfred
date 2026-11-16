@@ -317,13 +317,14 @@ describe('chastity game', () => {
 		});
 	});
 
-	it('a refund adds time and gives the price back', async () => {
+	it('a refund adds time and gives half the price back', async () => {
 		const game = await freshGame(pick(1, 1));
 		expect(await game.memberSpin(ALICE)).toMatchObject({
 			ok: true,
 			roll: { name: 'Refund' },
-			balanceSeconds: 24 * H,
-			event: { timerDeltaSeconds: H, creditSeconds: 6 * H },
+			// 6 at 1.5x, 3 of it back
+			balanceSeconds: 21 * H,
+			event: { timerDeltaSeconds: H, creditSeconds: 3 * H },
 		});
 	});
 

@@ -23,15 +23,15 @@ describe('wheel', () => {
 		});
 	});
 
-	it('adds time far more often than it backfires, and lands on legendary about 3% of the time', () => {
+	it('adds time far more often than it backfires, and lands on legendary about 1.5% of the time', () => {
 		const random = seeded(42);
 		const rolls = Array.from({ length: 10_000 }, () => roll(DEFAULT_WHEEL, random));
 		const share = rolls.filter((r) => r.tier === 'legendary').length / rolls.length;
-		expect(share).toBeGreaterThan(0.02);
-		expect(share).toBeLessThan(0.04);
+		expect(share).toBeGreaterThan(0.01);
+		expect(share).toBeLessThan(0.02);
 		const adds = rolls.filter((r) => (r.effect === 'timer' || r.effect === 'refund') && r.minutes > 0).length;
 		const backfires = rolls.filter((r) => r.effect === 'timer' && r.minutes < 0).length;
-		expect(adds).toBeGreaterThan(backfires * 3);
+		expect(adds).toBeGreaterThan(backfires * 2.5);
 	});
 
 	it('keeps bank effects out of the common and rare tiers', () => {

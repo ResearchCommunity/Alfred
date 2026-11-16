@@ -44,7 +44,8 @@ function cardAmount({ effect }: Outcome): string {
 	if (effect.kind === 'windfall') return `${effect.times.toLocaleString('en-US')}× spin price`;
 	const { minMinutes: min, maxMinutes: max } = effect;
 	if (effect.kind === 'timer') return max < 0 ? `−${span(-max, -min)}` : `+${span(min, max)}`;
-	if (effect.kind === 'refund') return `+${span(min, max)}, free`;
+	if (effect.kind === 'refund')
+		return `+${span(min, max)}, ${effect.share >= 1 ? 'free' : effect.share === 0.5 ? 'half back' : `${Math.round(effect.share * 100)}% back`}`;
 	if (effect.kind === 'happyHour') return `${span(min, max)} half price`;
 	if (effect.kind === 'bankDrain') return `−${span(min, max)} bank`;
 	if (effect.kind === 'heist') return `${span(min, max)} bank → timer`;

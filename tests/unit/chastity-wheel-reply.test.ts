@@ -26,9 +26,10 @@ describe('wheelReply', () => {
 	it('lists every outcome with its overall chance and effect', () => {
 		for (const tier of DEFAULT_WHEEL)
 			for (const outcome of tier.outcomes) expect(text).toContain(`**${outcome.name}**`);
-		expect(text).toContain('**Nudge** · 35%');
-		expect(text).toContain('**Big push** · 10%');
-		expect(text).toContain('**Drain** · 1.5%');
+		expect(text).toContain('**Nudge** · 33%');
+		expect(text).toContain('**Big push** · 9%');
+		expect(text).toContain('**Drain** · 0.6%');
+		expect(text).toContain("and **half** the spin's price back");
 		expect(text).toContain('**Mercy** · 0.5%');
 		expect(text).toContain('**−1h to 3h** off the timer');
 		expect(text).toContain("**2× the spin's price** for the spinner, right now 16 dubloons");
@@ -36,7 +37,7 @@ describe('wheelReply', () => {
 
 	it('shows the tier chances and the spin price', () => {
 		expect(text).toContain('### Common · 60%');
-		expect(text).toContain('### ✨ Legendary · 3%');
+		expect(text).toContain('### ✨ Legendary · 1.5%');
 		expect(text).toContain('A spin costs **4 dubloons × the multiplier**, right now **8 dubloons** at 2.0x');
 	});
 });

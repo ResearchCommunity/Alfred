@@ -9,7 +9,7 @@ export type Tier = (typeof TIERS)[number];
 
 /**
  * - timer: ± time on the timer (negative = backfire)
- * - refund: + time on the timer, and the spinner gets the spin's price back
+ * - refund: + time on the timer, and the spinner gets `share` of the spin's price back
  * - happyHour: adding costs half for everyone, for this many minutes
  * - windfall: the spinner gets `times` the spin's price, even past the cap (the price follows
  *   the multiplier, so a fixed amount would stop being a win)
@@ -22,24 +22,32 @@ export type EffectKind = (typeof EFFECTS)[number];
 
 const BANK_EFFECTS: ReadonlySet<EffectKind> = new Set(['bankDrain', 'heist', 'bankBonus']);
 
+const Range = { minMinutes: z.number().int(), maxMinutes: z.number().int() };
+const ordered = (effect: { minMinutes: number; maxMinutes: number }) => effect.minMinutes <= effect.maxMinutes;
+
 const RangeEffectSchema = z
-	.strictObject({
-		kind: z.enum(EFFECTS.filter((kind) => kind !== 'windfall')),
-		minMinutes: z.number().int(),
-		maxMinutes: z.number().int(),
-	})
-	.refine((effect) => effect.minMinutes <= effect.maxMinutes, 'minMinutes must not exceed maxMinutes')
+	.strictObject({ kind: z.enum(EFFECTS.filter((kind) => kind !== 'windfall' && kind !== 'refund')), ...Range })
+	.refine(ordered, 'minMinutes must not exceed maxMinutes')
 	.refine(
 		(effect) => effect.kind === 'timer' || effect.minMinutes > 0,
 		'Only timer outcomes may be negative; give the others positive amounts',
 	);
+
+const RefundEffectSchema = z
+	.strictObject({
+		kind: z.literal('refund'),
+		...Range,
+		share: z.number().positive().max(1).default(0.5).describe("How much of the spin's price comes back (1 = all)"),
+	})
+	.refine(ordered, 'minMinutes must not exceed maxMinutes')
+	.refine((effect) => effect.minMinutes > 0, 'A refund adds time; give it a positive amount');
 
 const WindfallEffectSchema = z.strictObject({
 	kind: z.literal('windfall'),
 	times: z.number().positive().describe("Payout as a multiple of the spin's price"),
 });
 
-const EffectSchema = z.union([RangeEffectSchema, WindfallEffectSchema]);
+const EffectSchema = z.union([RangeEffectSchema, RefundEffectSchema, WindfallEffectSchema]);
 
 export type Effect = z.infer<typeof EffectSchema>;
 
@@ -70,46 +78,51 @@ export type Wheel = z.infer<typeof WheelSchema>;
 const outcome = (
 	name: string,
 	weight: number,
-	kind: Exclude<EffectKind, 'windfall'>,
+	kind: Exclude<EffectKind, 'windfall' | 'refund'>,
 	minMinutes: number,
 	maxMinutes = minMinutes,
 ) => ({ name, weight, effect: { kind, minMinutes, maxMinutes } });
 
-/** Starting defaults, meant to be tuned through config. Weights within a tier are the overall %. */
+/**
+ * Starting defaults, meant to be tuned through config. Weights within a tier are the overall %.
+ * Balanced so a spin is worth about 70% of adding time with the same money: the wheel is the
+ * fun, risky option, not the efficient one (see the 2026-11-16 export review).
+ */
 export const DEFAULT_WHEEL: Wheel = [
 	{
 		tier: 'common',
 		weight: 60,
 		outcomes: [
-			outcome('Nudge', 35, 'timer', 60, 180),
-			outcome('Shove', 15, 'timer', 180, 360),
-			outcome('Backfire', 10, 'timer', -180, -60),
+			outcome('Nudge', 33, 'timer', 60, 180),
+			outcome('Shove', 14, 'timer', 180, 360),
+			outcome('Backfire', 13, 'timer', -180, -60),
 		],
 	},
 	{
 		tier: 'uncommon',
 		weight: 25,
 		outcomes: [
-			outcome('Big push', 10, 'timer', 360, 720),
-			outcome('Refund', 8, 'refund', 60, 120),
-			outcome('Big backfire', 7, 'timer', -480, -240),
+			outcome('Big push', 9, 'timer', 360, 720),
+			// Half back, not all: a free spin let one lucky member chain a whole streak
+			{ name: 'Refund', weight: 8, effect: { kind: 'refund', minMinutes: 60, maxMinutes: 120, share: 0.5 } },
+			outcome('Big backfire', 8, 'timer', -480, -240),
 		],
 	},
 	{
 		tier: 'rare',
-		weight: 12,
+		weight: 13.5,
 		outcomes: [
 			outcome('Jackpot', 5, 'timer', 720, 1440),
-			outcome('Happy hour', 5, 'happyHour', 60),
+			outcome('Happy hour', 6.5, 'happyHour', 60),
 			{ name: 'Windfall', weight: 2, effect: { kind: 'windfall', times: 2 } },
 		],
 	},
 	{
 		tier: 'legendary',
-		weight: 3,
+		weight: 1.5,
 		outcomes: [
-			outcome('Drain', 1.5, 'bankDrain', 120, 360),
-			outcome('Heist', 1, 'heist', 120, 360),
+			outcome('Drain', 0.6, 'bankDrain', 120, 360),
+			outcome('Heist', 0.4, 'heist', 120, 360),
 			outcome('Mercy', 0.5, 'bankBonus', 120),
 		],
 	},
@@ -123,6 +136,8 @@ export interface Roll {
 	minutes: number;
 	/** Windfall only: the payout as a multiple of the spin's price */
 	times?: number;
+	/** Refund only: how much of the spin's price comes back */
+	share?: number;
 }
 
 function pick<T extends { weight: number }>(items: readonly T[], random: () => number): T {
@@ -144,5 +159,11 @@ export function roll(wheel: Wheel, random: () => number): Roll {
 	if (effect.kind === 'windfall')
 		return { tier: tier.tier, name, effect: effect.kind, minutes: 0, times: effect.times };
 	const minutes = effect.minMinutes + Math.floor(random() * (effect.maxMinutes - effect.minMinutes + 1));
-	return { tier: tier.tier, name, effect: effect.kind, minutes: Math.min(minutes, effect.maxMinutes) };
+	return {
+		tier: tier.tier,
+		name,
+		effect: effect.kind,
+		minutes: Math.min(minutes, effect.maxMinutes),
+		...(effect.kind === 'refund' && { share: effect.share }),
+	};
 }

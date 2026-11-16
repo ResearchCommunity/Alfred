@@ -66,7 +66,9 @@ function describeRoll(roll: Roll, event: GameEvent, config: ChastityConfig): str
 
 	if (roll.effect === 'timer') return timer;
 	if (roll.effect === 'refund')
-		return `${timer}, and the spin was free (${formatCurrency(event.creditSeconds, config.currencyName)} back)`;
+		return (roll.share ?? 1) >= 1
+			? `${timer}, and the spin was free (${formatCurrency(event.creditSeconds, config.currencyName)} back)`
+			: `${timer}, and ${refundShare(roll.share ?? 1)} the price back (${formatCurrency(event.creditSeconds, config.currencyName)})`;
 	if (roll.effect === 'happyHour') return `adding time costs **half** for everyone for the next ${amount}`;
 	if (roll.effect === 'windfall')
 		return `**+${formatCurrency(event.creditSeconds, config.currencyName)}** for the spinner`;
@@ -326,6 +328,13 @@ function range(minMinutes: number, maxMinutes: number): string {
 	return low === high ? low : `${low} to ${high}`;
 }
 
+/** "half of", "a quarter of", or "30% of" */
+export function refundShare(share: number): string {
+	if (share === 0.5) return 'half';
+	if (share === 0.25) return 'a quarter of';
+	return `${Math.round(share * 100)}% of`;
+}
+
 function describeEffect(effect: Effect, config: ChastityConfig, multiplier: number | null): string {
 	if (effect.kind === 'windfall') {
 		const now =
@@ -337,7 +346,10 @@ function describeEffect(effect: Effect, config: ChastityConfig, multiplier: numb
 	const { minMinutes: min, maxMinutes: max } = effect;
 	if (effect.kind === 'timer')
 		return max < 0 ? `**−${range(-max, -min)}** off the timer` : `**+${range(min, max)}** on the timer`;
-	if (effect.kind === 'refund') return `**+${range(min, max)}** on the timer, and the spin is free`;
+	if (effect.kind === 'refund')
+		return effect.share >= 1
+			? `**+${range(min, max)}** on the timer, and the spin is free`
+			: `**+${range(min, max)}** on the timer, and **${refundShare(effect.share)}** the spin's price back`;
 	if (effect.kind === 'happyHour') return `Adding time costs **half** for everyone, for ${range(min, max)}`;
 	const shortfall = `**×${config.bankShortfallFactor.toLocaleString('en-US')}**`;
 	if (effect.kind === 'bankDrain')

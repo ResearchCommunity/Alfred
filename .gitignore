@@ -1,6 +1,7 @@
 node_modules/
 dist/
 coverage/
+exports/
 *.tsbuildinfo
 
 # Yarn Berry (Corepack provides the binary; no PnP, no zero-installs)

@@ -236,7 +236,7 @@ export class Game {
 					priceSeconds,
 					creditSeconds:
 						outcome.effect === 'refund'
-							? priceSeconds
+							? Math.round((priceSeconds * (outcome.share ?? 1)) / 60) * 60
 							: outcome.effect === 'windfall'
 								? Math.round(priceSeconds * (outcome.times ?? 0))
 								: 0,
